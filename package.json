@@ -1,0 +1,77 @@
+{
+  "name": "@stoe/skill-authoring",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "CLI to scaffold and validate GitHub Copilot skill packages (SKILL.md authoring toolkit)",
+  "bin": {
+    "skill-authoring": "./scripts/skill-authoring.js"
+  },
+  "exports": {
+    ".": "./scripts/skill-authoring.js",
+    "./commands/init": "./scripts/src/commands/init.js",
+    "./commands/validate": "./scripts/src/commands/validate.js",
+    "./core/discover": "./scripts/src/core/discover.js",
+    "./core/frontmatter": "./scripts/src/core/frontmatter.js",
+    "./core/fsx": "./scripts/src/core/fsx.js",
+    "./core/log": "./scripts/src/core/log.js",
+    "./core/reporters": "./scripts/src/core/reporters.js",
+    "./validate": "./scripts/src/validate/index.js",
+    "./validate/micro-templates": "./scripts/src/validate/micro-templates.js",
+    "./validate/security": "./scripts/src/validate/security.js"
+  },
+  "files": [
+    "scripts/",
+    "license"
+  ],
+  "keywords": [
+    "github-copilot",
+    "skill",
+    "cli",
+    "validation"
+  ],
+  "author": {
+    "name": "Stefan Stölzle",
+    "email": "stefan@stoelzle.me",
+    "url": "https://github.com/stoe"
+  },
+  "license": "MIT",
+  "repository": "github:stoe/skill-authoring",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "format": "npx prettier --config-precedence prefer-file --write . && eslint -c eslint.config.js . --fix",
+    "prepare": "husky",
+    "pretest": "npx eslint-config-prettier eslint.config.js",
+    "test": "find scripts -name '*.js' -exec node --check {} + && npx eslint -c eslint.config.js ."
+  },
+  "devDependencies": {
+    "@github/prettier-config": "^0.0.6",
+    "eslint": "^10.9.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "globals": "^17.11.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": ".husky/pre-commit",
+      "pre-push": ".husky/pre-push"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run format --if-present"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "prettier": "@github/prettier-config",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  }
+}

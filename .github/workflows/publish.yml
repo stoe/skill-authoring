@@ -1,0 +1,13 @@
+name: publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    uses: stoe/policies/.github/workflows/policy-node-publish.yml@main
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
