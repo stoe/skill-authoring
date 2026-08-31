@@ -34,17 +34,17 @@ const colors = shouldUseColor()
     }
 
 export function createLogger(level = 'info') {
-  const levels = {debug: 0, info: 1, warn: 2, error: 3, silent: 4}
+  const levels = {debug: 0, info: 1, success: 1, warn: 2, error: 3, silent: 4}
   const currentLevel = levels[level] ?? 1
 
   const log = (severity, msg) => {
-    if (levels[severity] >= currentLevel) {
+    if ((levels[severity] ?? Number.POSITIVE_INFINITY) >= currentLevel) {
       const prefix = {
         debug: `${colors.dim}⊘${colors.reset}`,
         info: `${colors.blue}ℹ${colors.reset}`,
+        success: `${colors.green}✓${colors.reset}`,
         warn: `${colors.yellow}⚠${colors.reset}`,
         error: `${colors.red}✗${colors.reset}`,
-        success: `${colors.green}✓${colors.reset}`,
       }[severity]
       console.log(`${prefix} ${msg}`)
     }

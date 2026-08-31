@@ -34,11 +34,9 @@ export async function resolveSkillPaths(inputs, baseDir = '.') {
       const stat = await fs.stat(resolved)
 
       if (stat.isDirectory()) {
-        // Single skill directory
-        const skillMdPath = path.join(resolved, 'SKILL.md')
-        if (await fileExists(skillMdPath)) {
-          results.add(resolved)
-        }
+        // Keep directories even when SKILL.md is missing so validation can report
+        // the missing file rather than silently skipping the target.
+        results.add(resolved)
       } else if (input.endsWith('SKILL.md')) {
         // Single SKILL.md file
         const skillDir = path.dirname(resolved)

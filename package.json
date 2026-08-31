@@ -3,26 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "description": "CLI to scaffold and validate GitHub Copilot skill packages (SKILL.md authoring toolkit)",
-  "bin": {
-    "skill-authoring": "./scripts/skill-authoring.js"
-  },
-  "exports": {
-    ".": "./scripts/skill-authoring.js",
-    "./commands/init": "./scripts/src/commands/init.js",
-    "./commands/validate": "./scripts/src/commands/validate.js",
-    "./core/discover": "./scripts/src/core/discover.js",
-    "./core/frontmatter": "./scripts/src/core/frontmatter.js",
-    "./core/fsx": "./scripts/src/core/fsx.js",
-    "./core/log": "./scripts/src/core/log.js",
-    "./core/reporters": "./scripts/src/core/reporters.js",
-    "./validate": "./scripts/src/validate/index.js",
-    "./validate/micro-templates": "./scripts/src/validate/micro-templates.js",
-    "./validate/security": "./scripts/src/validate/security.js"
-  },
-  "files": [
-    "scripts/",
-    "license"
-  ],
   "keywords": [
     "github-copilot",
     "skill",
@@ -36,14 +16,39 @@
   },
   "license": "MIT",
   "repository": "github:stoe/skill-authoring",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "engines": {
     "node": ">=22"
   },
+  "bin": {
+    "skill-authoring": "./cli.js"
+  },
+  "exports": {
+    ".": "./cli.js",
+    "./commands/init": "./src/commands/init.js",
+    "./commands/validate": "./src/commands/validate.js",
+    "./core/discover": "./src/core/discover.js",
+    "./core/frontmatter": "./src/core/frontmatter.js",
+    "./core/fsx": "./src/core/fsx.js",
+    "./core/log": "./src/core/log.js",
+    "./core/reporters": "./src/core/reporters.js",
+    "./validate": "./src/validate/index.js",
+    "./validate/micro-templates": "./src/validate/micro-templates.js",
+    "./validate/security": "./src/validate/security.js"
+  },
+  "files": [
+    "cli.js",
+    "src/",
+    "license"
+  ],
   "scripts": {
     "format": "npx prettier --config-precedence prefer-file --write . && eslint -c eslint.config.js . --fix",
     "prepare": "husky",
     "pretest": "npx eslint-config-prettier eslint.config.js",
-    "test": "find scripts -name '*.js' -exec node --check {} + && npx eslint -c eslint.config.js ."
+    "test": "find src -name '*.js' -exec node --check {} + && npx eslint -c eslint.config.js ."
   },
   "devDependencies": {
     "@github/prettier-config": "^0.0.6",
@@ -69,9 +74,5 @@
       "prettier --write"
     ]
   },
-  "prettier": "@github/prettier-config",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
-  }
+  "prettier": "@github/prettier-config"
 }
