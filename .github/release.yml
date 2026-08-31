@@ -1,0 +1,33 @@
+changelog:
+  exclude: {}
+  categories:
+    - title: '📦 Changes'
+      labels:
+        - '*'
+      exclude:
+        labels:
+          - 'bug :bug:'
+          - 'bug 🐛'
+          - 'dependency :robot:'
+          - 'dependency 🤖'
+          - 'github-action :robot:'
+          - 'github-action 🤖'
+          - 'documentation :memo:'
+          - 'documentation 📝'
+
+    - title: '🐛 Bug Fixes'
+      labels:
+        - 'bug :bug:'
+        - 'bug 🐛'
+
+    - title: '🆙 Dependencies'
+      labels:
+        - 'dependency :robot:'
+        - 'dependency 🤖'
+        - 'github-action :robot:'
+        - 'github-action 🤖'
+
+    - title: '📝 Documentation'
+      labels:
+        - 'documentation :memo:'
+        - 'documentation 📝'

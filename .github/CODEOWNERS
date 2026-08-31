@@ -1,0 +1,12 @@
+# Default owner for everything in this repository.
+*         @stoe
+
+# CLI entry point and source modules.
+/cli.js   @stoe
+/src/     @stoe
+
+# Test suite.
+/test/    @stoe
+
+# CI, governance, and dependency automation.
+/.github/ @stoe
