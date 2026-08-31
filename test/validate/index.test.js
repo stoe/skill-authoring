@@ -1,0 +1,52 @@
+import {describe, test} from 'node:test'
+import assert from 'node:assert/strict'
+import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+
+import {validateSkill} from '../../src/validate/index.js'
+
+describe('validate/index', () => {
+  test('accepts a valid minimal skill document', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-index-'))
+    const skillDir = path.join(tmpDir, 'valid-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      await writeFile(
+        path.join(skillDir, 'SKILL.md'),
+        `---
+name: valid-skill
+description: Provides a sample skill. Use when validating skills in a project.
+license: MIT. See LICENSE file for details.
+---
+
+# Valid Skill
+
+This skill validates other skill content and is designed for local testing.
+`,
+      )
+
+      const result = await validateSkill(skillDir)
+      assert.equal(result.skillName, 'valid-skill')
+      assert.ok(Array.isArray(result.errors))
+      assert.ok(Array.isArray(result.warnings))
+      assert.ok(Array.isArray(result.infos))
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
+  test('flags a missing SKILL.md file', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-index-'))
+    const skillDir = path.join(tmpDir, 'broken-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      const result = await validateSkill(skillDir)
+      assert.equal(result.errors[0].code, 'skill.missing')
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+})

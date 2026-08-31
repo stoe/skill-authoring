@@ -48,7 +48,7 @@
     "format": "npx prettier --config-precedence prefer-file --write . && eslint -c eslint.config.js . --fix",
     "prepare": "husky",
     "pretest": "npx eslint-config-prettier eslint.config.js",
-    "test": "find src -name '*.js' -exec node --check {} + && npx eslint -c eslint.config.js ."
+    "test": "find src -name '*.js' -exec node --check {} + && node --test test/**/*.test.js && npx eslint -c eslint.config.js ."
   },
   "devDependencies": {
     "@github/prettier-config": "^0.0.6",
