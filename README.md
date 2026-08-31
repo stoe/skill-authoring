@@ -81,6 +81,13 @@ import {resolveSafeSkillPath} from '@stoe/skill-authoring/core/fsx'
 
 Available subpaths: `.`, `./commands/init`, `./commands/validate`, `./core/discover`, `./core/frontmatter`, `./core/fsx`, `./core/log`, `./core/reporters`, `./validate`, `./validate/micro-templates`, `./validate/security`.
 
+## Community
+
+- Read the [contribution guide](.github/contributing.md) before opening a pull request.
+- Review the [Code of Conduct](.github/code_of_conduct.md) for community expectations.
+- Follow the [security policy](.github/security.md) to report vulnerabilities privately.
+- See the [support guide](.github/support.md) for help and feature requests.
+
 ## License
 
 [MIT](./license) © [Stefan Stölzle](https://github.com/stoe)
