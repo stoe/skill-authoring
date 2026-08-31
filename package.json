@@ -52,12 +52,12 @@
   },
   "devDependencies": {
     "@github/prettier-config": "^0.0.6",
-    "eslint": "^10.9.0",
+    "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
     "globals": "^17.11.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.3.0",
+    "lint-staged": "^17.4.1",
     "prettier": "^3.9.6"
   },
   "husky": {
