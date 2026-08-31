@@ -3,7 +3,7 @@
  */
 
 function normalizeText(text) {
-  return (text || '').replace(/[\t\r\n]+/g, ' ').trim()
+  return (typeof text === 'string' ? text : '').replace(/[\t\r\n]+/g, ' ').trim()
 }
 
 function hasTriggerContext(text) {
@@ -39,10 +39,11 @@ function checkIOTokens(text) {
 }
 
 function hasNoLinks(text) {
-  return !/(https?:\/\/|\[[^\]]+\]\([^\)]+\))/i.test(text)
+  return !/(https?:\/\/|\[[^\][]+\]\([^()]+\))/i.test(text)
 }
 
 export function validateMicroTemplate(description) {
+  const raw = typeof description === 'string' ? description : ''
   const desc = normalizeText(description)
   const issues = []
 
@@ -92,7 +93,7 @@ export function validateMicroTemplate(description) {
     })
   }
 
-  if (/<[a-zA-Z][^>]*>/.test(desc)) {
+  if (/<[a-zA-Z][^<>]*>/.test(desc)) {
     issues.push({
       severity: 'error',
       code: 'desc.xml',
@@ -110,7 +111,7 @@ export function validateMicroTemplate(description) {
   }
 
   // NBSP
-  if (/\u00A0/.test(description)) {
+  if (/\u00A0/.test(raw)) {
     issues.push({
       severity: 'warn',
       code: 'desc.nbsp',
@@ -128,7 +129,7 @@ export function validateMicroTemplate(description) {
   }
 
   // Trailing whitespace
-  if (/[ \t]+$/.test(description)) {
+  if (raw.endsWith(' ') || raw.endsWith('\t')) {
     issues.push({
       severity: 'warn',
       code: 'desc.trailing',
