@@ -5,7 +5,7 @@
 
 > CLI to scaffold and validate GitHub Copilot skill packages (SKILL.md authoring toolkit)
 
-`@stoe/skill-authoring` provides a small, dependency-free command-line tool for creating and validating [Agent Skills](https://docs.github.com/en/copilot) (`SKILL.md`-based packages) for GitHub Copilot. It is the implementation behind the `skill-authoring` skill in [stoe/skills](https://github.com/stoe/skills), extracted here so it can be installed and versioned independently.
+`@stoe/skill-authoring` provides a small, dependency-free command-line tool for creating and validating [Agent Skills](https://docs.github.com/en/copilot) (`SKILL.md`-based packages) for GitHub Copilot. It is designed to work as a standalone package and can be installed and used independently.
 
 ## Installation
 
@@ -26,7 +26,7 @@ Then install:
 # as a global CLI
 npm i -g @stoe/skill-authoring
 
-# or as a devDependency in a skills workspace
+# or as a devDependency in a project
 npm i -D @stoe/skill-authoring
 ```
 
@@ -43,14 +43,14 @@ skill-authoring validate --all --path <root> --format json
 skill-authoring validate --all --path <root> --fail-level warning
 ```
 
-| Option | Description |
-| --- | --- |
-| `-s, --skill <path>` | Path to a single skill directory to validate |
-| `-a, --all` | Validate all skills found under `--path` |
-| `-p, --path <path>` | Root path for discovering skills (used with `--all`) |
-| `-f, --format <format>` | Output format: `pretty` (default) or `json` |
-| `--fail-level <level>` | Exit non-zero at this level: `error` (default) or `warning` |
-| `-h, --help` | Show help |
+| Option                  | Description                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| `-s, --skill <path>`    | Path to a single skill directory to validate                |
+| `-a, --all`             | Validate all skills found under `--path`                    |
+| `-p, --path <path>`     | Root path for discovering skills (used with `--all`)        |
+| `-f, --format <format>` | Output format: `pretty` (default) or `json`                 |
+| `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning` |
+| `-h, --help`            | Show help                                                   |
 
 Validation covers, among other checks: frontmatter parsing and required fields, `name`/`description` conventions, SKILL.md length (~100 lines target, 5,000 word max), broken relative links, placeholder text, heading hierarchy, extraneous files, and a set of security checks (invisible Unicode, encoded payloads, instruction-override patterns, hardcoded local paths, unsafe reference paths, boundary-language requirements).
 
@@ -63,11 +63,11 @@ skill-authoring init <skill-name>
 skill-authoring init <skill-name> --force
 ```
 
-| Option | Description |
-| --- | --- |
+| Option         | Description                          |
+| -------------- | ------------------------------------ |
 | `<skill-name>` | Skill name (lowercase, hyphens only) |
-| `-f, --force` | Overwrite an existing directory |
-| `-h, --help` | Show help |
+| `-f, --force`  | Overwrite an existing directory      |
+| `-h, --help`   | Show help                            |
 
 ## Programmatic API
 
@@ -80,10 +80,6 @@ import {resolveSafeSkillPath} from '@stoe/skill-authoring/core/fsx'
 ```
 
 Available subpaths: `.`, `./commands/init`, `./commands/validate`, `./core/discover`, `./core/frontmatter`, `./core/fsx`, `./core/log`, `./core/reporters`, `./validate`, `./validate/micro-templates`, `./validate/security`.
-
-## Relationship to stoe/skills
-
-This package is the CLI implementation behind the `skill-authoring` Copilot skill defined in [stoe/skills](https://github.com/stoe/skills) (`skills/skill-authoring/SKILL.md`). That repository documents the authoring conventions and workflow; this package provides the tooling that enforces them.
 
 ## License
 
