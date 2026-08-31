@@ -66,7 +66,7 @@ export async function validateSkill(skillDir) {
   }
 
   // Check SKILL.md length (words, excluding frontmatter)
-  const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---/m)
+  const frontmatterMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---/m)
   const skillContent = frontmatterMatch ? content.slice(frontmatterMatch[0].length) : content
   const wordCount = skillContent
     .trim()
@@ -504,7 +504,7 @@ async function checkHeadingHierarchy(skillDir, warnings) {
 
       if (inCodeBlock) continue
 
-      const headingMatch = lines[i].match(/^(#{1,6})\s+\S/)
+      const headingMatch = lines[i].match(/^(#{1,6})[ \t]+\S/)
       if (headingMatch) {
         const currentLevel = headingMatch[1].length
         if (previousLevel > 0 && currentLevel > previousLevel + 1) {
@@ -540,7 +540,7 @@ async function checkDuplicateHeadings(skillDir, warnings) {
     const lines = data.text.split('\n')
 
     for (const line of lines) {
-      const headingMatch = line.match(/^#{1,6}\s+(.+)$/)
+      const headingMatch = line.match(/^#{1,6}[ \t]+(.+)$/)
       if (headingMatch) {
         const headingText = headingMatch[1].trim()
         if (headings.includes(headingText)) {

@@ -3,7 +3,7 @@
  */
 
 export function extractFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/m)
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/m)
   if (!match) {
     return null
   }
@@ -14,13 +14,15 @@ export function extractFrontmatter(content) {
   let currentValue = ''
 
   for (const line of lines) {
-    const keyMatch = line.match(/^(\w+):\s*(.*)$/)
-    if (keyMatch && !line.startsWith(' ')) {
+    const separatorIndex = line.indexOf(':')
+    const key = separatorIndex > 0 ? line.slice(0, separatorIndex) : null
+
+    if (key !== null && /^\w+$/.test(key) && !line.startsWith(' ')) {
       if (currentKey) {
         frontmatter[currentKey] = currentValue.trim().replace(/^["']|["']$/g, '')
       }
-      currentKey = keyMatch[1]
-      currentValue = keyMatch[2]
+      currentKey = key
+      currentValue = line.slice(separatorIndex + 1)
     } else if (currentKey) {
       currentValue += ' ' + line.trim()
     }
