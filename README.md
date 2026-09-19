@@ -91,6 +91,17 @@ import {resolveSafeSkillPath} from '@stoe/skill-authoring/core/fsx'
 
 Available subpaths: `.`, `./commands/init`, `./commands/validate`, `./core/discover`, `./core/frontmatter`, `./core/fsx`, `./core/log`, `./core/reporters`, `./validate`, `./validate/micro-templates`, `./validate/security`.
 
+## Repository file handling
+
+Install [Git LFS](https://git-lfs.com/) before adding or updating binary documents or images outside skill directories. The root [`.gitattributes`](.gitattributes) normalizes text files to LF, stores supported binary formats in LFS, and marks intentionally tracked build output as generated. Skill-bundled binaries remain ordinary Git objects so installed skills receive complete files. Disposable `coverage/`, `dist/`, and `build/` directories remain ignored.
+
+After changing covered files, verify their attributes and pointers:
+
+```sh
+git check-attr --all -- path/to/file
+git lfs ls-files
+```
+
 ## Community
 
 - Read the [contribution guide](.github/contributing.md) before opening a pull request.

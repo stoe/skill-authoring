@@ -1,1 +1,64 @@
 * text=auto eol=lf
+
+# Windows command files require CRLF line endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Store binary documents and images in Git LFS.
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+*.avif filter=lfs diff=lfs merge=lfs -text
+*.ico filter=lfs diff=lfs merge=lfs -text
+*.bmp filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+*.pptx filter=lfs diff=lfs merge=lfs -text
+*.xlsx filter=lfs diff=lfs merge=lfs -text
+
+# Keep skill-bundled binaries in Git so installed skills receive full files.
+skills/**/*.pdf -filter -diff -merge -text
+skills/**/*.png -filter -diff -merge -text
+skills/**/*.jpg -filter -diff -merge -text
+skills/**/*.jpeg -filter -diff -merge -text
+skills/**/*.gif -filter -diff -merge -text
+skills/**/*.webp -filter -diff -merge -text
+skills/**/*.avif -filter -diff -merge -text
+skills/**/*.ico -filter -diff -merge -text
+skills/**/*.bmp -filter -diff -merge -text
+skills/**/*.tif -filter -diff -merge -text
+skills/**/*.tiff -filter -diff -merge -text
+skills/**/*.docx -filter -diff -merge -text
+skills/**/*.pptx -filter -diff -merge -text
+skills/**/*.xlsx -filter -diff -merge -text
+plugins/**/skills/**/*.pdf -filter -diff -merge -text
+plugins/**/skills/**/*.png -filter -diff -merge -text
+plugins/**/skills/**/*.jpg -filter -diff -merge -text
+plugins/**/skills/**/*.jpeg -filter -diff -merge -text
+plugins/**/skills/**/*.gif -filter -diff -merge -text
+plugins/**/skills/**/*.webp -filter -diff -merge -text
+plugins/**/skills/**/*.avif -filter -diff -merge -text
+plugins/**/skills/**/*.ico -filter -diff -merge -text
+plugins/**/skills/**/*.bmp -filter -diff -merge -text
+plugins/**/skills/**/*.tif -filter -diff -merge -text
+plugins/**/skills/**/*.tiff -filter -diff -merge -text
+plugins/**/skills/**/*.docx -filter -diff -merge -text
+plugins/**/skills/**/*.pptx -filter -diff -merge -text
+plugins/**/skills/**/*.xlsx -filter -diff -merge -text
+
+# Exclude intentionally tracked generated output from language statistics.
+dist/** linguist-generated=true
+build/** linguist-generated=true
+coverage/** linguist-generated=true
+*.min.js linguist-generated=true
+*.min.css linguist-generated=true
+*.map linguist-generated=true
+release-manifest.json linguist-generated=true
+release-checksums.txt linguist-generated=true
+sbom*.json linguist-generated=true
+.github/inventory.md linguist-generated=true
+.github/plugin/inventory.json linguist-generated=true
