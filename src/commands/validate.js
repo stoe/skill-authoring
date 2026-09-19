@@ -8,10 +8,14 @@ import {validateSkill} from '../validate/index.js'
 import {createReporter, reportBatch} from '../core/reporters.js'
 
 export async function validateCommand(args = {}) {
-  const {skill, all = false, rootDir, format = 'pretty', failLevel = 'error'} = args
+  const {skill, all = false, rootDir, format = 'pretty', profile = 'standard', failLevel = 'error'} = args
 
   if (!['error', 'warning'].includes(failLevel)) {
     throw new Error(`Invalid fail level: ${failLevel}. Expected 'error' or 'warning'.`)
+  }
+
+  if (!['standard', 'public', 'private'].includes(profile)) {
+    throw new Error(`Invalid profile: ${profile}. Expected 'standard', 'public', or 'private'.`)
   }
 
   const reporter = createReporter(format)
@@ -31,7 +35,7 @@ export async function validateCommand(args = {}) {
   }
 
   for (const skillPath of skillPaths) {
-    const result = await validateSkill(skillPath)
+    const result = await validateSkill(skillPath, {profile})
     results.push(result)
 
     if (format === 'pretty') {

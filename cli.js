@@ -28,6 +28,11 @@ async function main() {
     all: {type: 'boolean', short: 'a', description: 'Validate all skills'},
     path: {type: 'string', short: 'p', description: 'Root path for discovering skills (for --all)'},
     format: {type: 'string', short: 'f', default: 'pretty', description: 'Output format: pretty|json'},
+    profile: {
+      type: 'string',
+      default: 'standard',
+      description: 'Validation policy profile: standard|public|private',
+    },
     'fail-level': {type: 'string', description: 'Exit with error if this level is reached'},
     failLevel: {type: 'string', default: 'error', description: 'Exit with error if this level is reached'},
     name: {type: 'string', short: 'n', description: 'Skill name (for init)'},
@@ -54,6 +59,7 @@ async function main() {
         all: parsed.values.all || false,
         rootDir: parsed.values.path || parsed.positionals[0],
         format: parsed.values.format,
+        profile: parsed.values.profile,
         failLevel: parsed.values['fail-level'] || parsed.values.failLevel,
       })
       process.exit(exitCode)
@@ -104,6 +110,7 @@ Options:
   -a, --all               Validate all skills in workspace
   -p, --path <path>       Root path for discovering skills (used with --all)
   -f, --format <format>   Output format: pretty (default) or json
+  --profile <profile>     Policy profile: standard (default), public, or private
   --fail-level <level>    Exit with error for this level: error (default) or warning
   -h, --help              Show this help message
 
@@ -123,6 +130,7 @@ Examples:
   skill-authoring.js validate --all ./skills
   skill-authoring.js validate --all --path ./skills
   skill-authoring.js validate --skill ./my-skill --format json
+  skill-authoring.js validate --skill ./my-skill --profile public
   skill-authoring.js validate --all --fail-level warning
 `)
   }

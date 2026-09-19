@@ -49,4 +49,32 @@ This skill validates other skill content and is designed for local testing.
       await rm(tmpDir, {recursive: true, force: true})
     }
   })
+
+  test('promotes local paths to errors for the public profile', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-index-'))
+    const skillDir = path.join(tmpDir, 'public-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      await writeFile(
+        path.join(skillDir, 'SKILL.md'),
+        `---
+name: public-skill
+description: Use when testing public validation. Boundary: not for production.
+license: MIT. See LICENSE file for details.
+---
+
+# Public Skill
+
+Read /Users/example/private/input.md before continuing.
+`,
+      )
+
+      const result = await validateSkill(skillDir, {profile: 'public'})
+      assert.equal(result.profile, 'public')
+      assert.ok(result.errors.some(issue => issue.code === 'security.local-path'))
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
 })
