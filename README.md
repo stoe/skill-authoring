@@ -40,19 +40,29 @@ Validate skill structure, frontmatter, naming conventions, and resource organiza
 skill-authoring validate --skill <path>
 skill-authoring validate --all --path <root>
 skill-authoring validate --all --path <root> --format json
+skill-authoring validate --all --path <root> --profile public
 skill-authoring validate --all --path <root> --fail-level warning
 ```
 
-| Option                  | Description                                                 |
-| ----------------------- | ----------------------------------------------------------- |
-| `-s, --skill <path>`    | Path to a single skill directory to validate                |
-| `-a, --all`             | Validate all skills found under `--path`                    |
-| `-p, --path <path>`     | Root path for discovering skills (used with `--all`)        |
-| `-f, --format <format>` | Output format: `pretty` (default) or `json`                 |
-| `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning` |
-| `-h, --help`            | Show help                                                   |
+| Option                  | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| `-s, --skill <path>`    | Path to a single skill directory to validate                 |
+| `-a, --all`             | Validate all skills found under `--path`                     |
+| `-p, --path <path>`     | Root path for discovering skills (used with `--all`)         |
+| `-f, --format <format>` | Output format: `pretty` (default) or `json`                  |
+| `--profile <profile>`   | Policy profile: `standard` (default), `public`, or `private` |
+| `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning`  |
+| `-h, --help`            | Show help                                                    |
 
 Validation covers, among other checks: frontmatter parsing and required fields, `name`/`description` conventions, SKILL.md length (~100 lines target, 5,000 word max), broken relative links, placeholder text, heading hierarchy, extraneous files, and a set of security checks (invisible Unicode, encoded payloads, instruction-override patterns, hardcoded local paths, unsafe reference paths, boundary-language requirements).
+
+### Validation profiles
+
+- `standard` preserves the default validation behavior for existing consumers.
+- `public` treats hardcoded local paths as errors and rejects known private or authenticated-only URLs plus the `.private` marker.
+- `private` permits documented private references while retaining the shared structural and security checks.
+
+Profiles classify distribution policy; they do not prove that content is safe, public, authorized, or correctly governed.
 
 ### `init`
 

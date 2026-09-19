@@ -35,6 +35,14 @@ const INSTRUCTION_OVERRIDE_PATTERNS = [
 // Personal/local absolute paths that should not ship in public skill docs.
 const HARDCODED_LOCAL_PATH_RE = /(\/Users\/[^/\s)`'"]+\/|\/home\/[^/\s)`'"]+\/|[A-Za-z]:\\Users\\[^\\\s)`'"]+\\)/
 
+const PRIVATE_URL_PATTERNS = [
+  /https?:\/\/(?:[^/\s]+\.)?internal(?:[/:]|$)/i,
+  /https?:\/\/localhost(?:[/:]|$)/i,
+  /https?:\/\/(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(?:[/:]|$)/i,
+  /https?:\/\/github-hr\.zendesk\.com(?:[/:]|$)/i,
+  /https?:\/\/thehub\.github\.com(?:[/:]|$)/i,
+]
+
 const BOUNDARY_PATTERN_RE = /\b(boundary|not for|do not use for|out of scope|must not be used|should not be used)\b/i
 
 async function collectDocFiles(skillDir) {
@@ -131,6 +139,37 @@ export async function checkHardcodedLocalPaths(skillDir, warnings) {
         message: `${path.basename(file)} contains a hardcoded personal/local path (${match[0].trim()}); remove before publishing`,
       })
     }
+  }
+}
+
+export async function checkProfilePolicy(skillDir, profile, errors) {
+  if (!['standard', 'public', 'private'].includes(profile)) {
+    throw new Error(`Invalid validation profile: ${profile}`)
+  }
+
+  if (profile !== 'public') return
+
+  const files = await collectDocFiles(skillDir)
+
+  for (const file of files) {
+    const data = await readText(file)
+    const stripped = stripFencedCode(data.text)
+    const match = PRIVATE_URL_PATTERNS.map(pattern => stripped.match(pattern)).find(Boolean)
+
+    if (match) {
+      errors.push({
+        code: 'profile.public.private-url',
+        message: `${path.basename(file)} references a private or authenticated-only URL (${match[0]}); remove or replace it before public distribution`,
+      })
+    }
+  }
+
+  const privateMarker = path.join(skillDir, '.private')
+  if (await fileExists(privateMarker)) {
+    errors.push({
+      code: 'profile.public.private-marker',
+      message: 'Skill contains a .private marker and cannot be distributed with the public profile',
+    })
   }
 }
 

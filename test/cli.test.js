@@ -15,6 +15,7 @@ describe('CLI', () => {
     assert.equal(stderr, '')
     assert.match(stdout, /Usage: .*validate/)
     assert.match(stdout, /--fail-level/)
+    assert.match(stdout, /--profile/)
   })
 
   test('creates a skill with init and exits zero', async () => {

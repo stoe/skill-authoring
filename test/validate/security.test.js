@@ -9,6 +9,7 @@ import {
   checkInstructionOverridePatterns,
   checkHardcodedLocalPaths,
   checkBoundaryLanguage,
+  checkProfilePolicy,
 } from '../../src/validate/security.js'
 
 describe('validate/security', () => {
@@ -73,5 +74,43 @@ describe('validate/security', () => {
     const warnings = []
     checkBoundaryLanguage('Provides a skill for general tasks.', warnings)
     assert.equal(warnings.length > 0, true)
+  })
+
+  test('rejects authenticated-only URLs in the public profile', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-security-'))
+    const skillDir = path.join(tmpDir, 'demo-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      await writeFile(
+        path.join(skillDir, 'SKILL.md'),
+        '---\nname: demo-skill\ndescription: safe\n---\n\nRead https://thehub.github.com/example.',
+      )
+
+      const errors = []
+      await checkProfilePolicy(skillDir, 'public', errors)
+      assert.equal(errors[0]?.code, 'profile.public.private-url')
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
+  test('allows authenticated-only URLs in the private profile', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-security-'))
+    const skillDir = path.join(tmpDir, 'demo-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      await writeFile(
+        path.join(skillDir, 'SKILL.md'),
+        '---\nname: demo-skill\ndescription: safe\n---\n\nRead https://thehub.github.com/example.',
+      )
+
+      const errors = []
+      await checkProfilePolicy(skillDir, 'private', errors)
+      assert.deepEqual(errors, [])
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
   })
 })

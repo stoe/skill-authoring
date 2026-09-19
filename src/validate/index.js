@@ -16,9 +16,10 @@ import {
   checkExternalUrlUntrusted,
   checkBoundaryLanguage,
   checkSecurityMetadataGuidance,
+  checkProfilePolicy,
 } from './security.js'
 
-export async function validateSkill(skillDir) {
+export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   const skillName = path.basename(skillDir)
   const skillMdPath = path.join(skillDir, 'SKILL.md')
 
@@ -119,12 +120,13 @@ export async function validateSkill(skillDir) {
   await checkInvisibleUnicode(skillDir, errors)
   await checkInstructionOverridePatterns(skillDir, errors)
   await checkEncodedPayloads(skillDir, warnings)
-  await checkHardcodedLocalPaths(skillDir, warnings)
+  await checkHardcodedLocalPaths(skillDir, profile === 'public' ? errors : warnings)
   await checkReferencePathSafety(skillDir, errors, warnings)
   await checkExternalUrlUntrusted(skillDir, warnings)
   await checkSecurityMetadataGuidance(skillDir, frontmatterMatch ? frontmatterMatch[0] : '', warnings)
+  await checkProfilePolicy(skillDir, profile, errors)
 
-  return {skillName, errors, warnings, infos}
+  return {skillName, profile, errors, warnings, infos}
 }
 
 function validateName(name, skillDir, errors, warnings) {

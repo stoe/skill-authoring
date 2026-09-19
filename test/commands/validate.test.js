@@ -76,4 +76,15 @@ This skill validates other skill content and is designed for local testing.
       await rm(tmpDir, {recursive: true, force: true})
     }
   })
+
+  test('rejects an unknown validation profile', async () => {
+    await assert.rejects(
+      () =>
+        validateCommand({
+          skill: '.',
+          profile: 'external',
+        }),
+      /Invalid profile: external/,
+    )
+  })
 })
