@@ -27,6 +27,7 @@ describe('validate/security', () => {
       const errors = []
       await checkInvisibleUnicode(skillDir, errors)
       assert.equal(errors.length > 0, true)
+      assert.equal(errors[0].path, 'SKILL.md')
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }
@@ -65,6 +66,7 @@ describe('validate/security', () => {
       const warnings = []
       await checkHardcodedLocalPaths(skillDir, warnings)
       assert.equal(warnings.length > 0, true)
+      assert.equal(warnings[0].path, 'SKILL.md')
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }
@@ -90,6 +92,7 @@ describe('validate/security', () => {
       const errors = []
       await checkProfilePolicy(skillDir, 'public', errors)
       assert.equal(errors[0]?.code, 'profile.public.private-url')
+      assert.equal(errors[0]?.path, 'SKILL.md')
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }

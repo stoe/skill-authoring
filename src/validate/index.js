@@ -22,6 +22,7 @@ import {
 export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   const skillName = path.basename(skillDir)
   const skillMdPath = path.join(skillDir, 'SKILL.md')
+  const skillMdIssuePath = 'SKILL.md'
 
   const errors = []
   const warnings = []
@@ -29,7 +30,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
 
   // Check SKILL.md exists
   if (!(await fileExists(skillMdPath))) {
-    errors.push({code: 'skill.missing', message: 'SKILL.md not found'})
+    errors.push({code: 'skill.missing', message: 'SKILL.md not found', path: skillMdIssuePath})
     return {skillName, errors, warnings, infos}
   }
 
@@ -39,30 +40,43 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
     const data = await readText(skillMdPath)
     content = data.text
   } catch (err) {
-    errors.push({code: 'skill.read', message: `Failed to read SKILL.md: ${err.message}`})
+    errors.push({
+      code: 'skill.read',
+      message: `Failed to read SKILL.md: ${err.message}`,
+      path: skillMdIssuePath,
+    })
     return {skillName, errors, warnings, infos}
   }
 
   const frontmatter = extractFrontmatter(content)
   if (!frontmatter) {
-    errors.push({code: 'skill.frontmatter', message: 'No YAML frontmatter found in SKILL.md'})
+    errors.push({
+      code: 'skill.frontmatter',
+      message: 'No YAML frontmatter found in SKILL.md',
+      path: skillMdIssuePath,
+    })
     return {skillName, errors, warnings, infos}
   }
 
   // Validate name
-  validateName(frontmatter.name, skillDir, errors, warnings)
+  validateName(frontmatter.name, skillDir, errors, warnings, skillMdIssuePath)
 
   // Validate required description field
   if (!frontmatter.description) {
-    errors.push({code: 'desc.missing', message: 'Missing required field: description'})
+    errors.push({
+      code: 'desc.missing',
+      message: 'Missing required field: description',
+      path: skillMdIssuePath,
+    })
   }
 
   // Validate micro-template
   if (frontmatter.description) {
     const mtIssues = validateMicroTemplate(frontmatter.description)
     mtIssues.forEach(issue => {
-      if (issue.severity === 'error') errors.push(issue)
-      else warnings.push(issue)
+      const issueWithPath = {...issue, path: skillMdIssuePath}
+      if (issue.severity === 'error') errors.push(issueWithPath)
+      else warnings.push(issueWithPath)
     })
   }
 
@@ -79,6 +93,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
     errors.push({
       code: 'skill.words',
       message: `SKILL.md exceeds 5000 words (${wordCount} words; push details to references/)`,
+      path: skillMdIssuePath,
     })
   }
 
@@ -86,6 +101,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
     warnings.push({
       code: 'skill.lines',
       message: `SKILL.md has ${lineCount} lines (target ~100 lines; max 120 with 20% buffer for leanness)`,
+      path: skillMdIssuePath,
     })
   }
 
@@ -114,7 +130,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   await checkPoorLinkText(skillDir, warnings)
 
   // Check boundary/"must not" language in the description
-  checkBoundaryLanguage(frontmatter.description, warnings)
+  checkBoundaryLanguage(frontmatter.description, warnings, skillMdIssuePath)
 
   // Security checks (OWASP Agentic Skills Top 10)
   await checkInvisibleUnicode(skillDir, errors)
@@ -129,9 +145,9 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   return {skillName, profile, errors, warnings, infos}
 }
 
-function validateName(name, skillDir, errors, warnings) {
+function validateName(name, skillDir, errors, warnings, issuePath) {
   if (!name) {
-    errors.push({code: 'name.missing', message: 'Missing required field: name'})
+    errors.push({code: 'name.missing', message: 'Missing required field: name', path: issuePath})
     return
   }
 
@@ -139,6 +155,7 @@ function validateName(name, skillDir, errors, warnings) {
     errors.push({
       code: 'name.format',
       message: 'Name must contain only lowercase letters, numbers, and hyphens',
+      path: issuePath,
     })
   }
 
@@ -146,6 +163,7 @@ function validateName(name, skillDir, errors, warnings) {
     errors.push({
       code: 'name.edges',
       message: 'Name must not start or end with a hyphen',
+      path: issuePath,
     })
   }
 
@@ -153,6 +171,7 @@ function validateName(name, skillDir, errors, warnings) {
     errors.push({
       code: 'name.consec',
       message: 'Name must not contain consecutive hyphens',
+      path: issuePath,
     })
   }
 
@@ -161,6 +180,7 @@ function validateName(name, skillDir, errors, warnings) {
     errors.push({
       code: 'name.match',
       message: `Name '${name}' must match directory '${dirName}' (spec requirement)`,
+      path: issuePath,
     })
   }
 
@@ -168,6 +188,7 @@ function validateName(name, skillDir, errors, warnings) {
     errors.push({
       code: 'name.length',
       message: `Name exceeds 64 characters (${name.length} chars)`,
+      path: issuePath,
     })
   }
 
@@ -175,6 +196,7 @@ function validateName(name, skillDir, errors, warnings) {
     errors.push({
       code: 'name.reserved',
       message: 'Name contains reserved words: anthropic or claude',
+      path: issuePath,
     })
   }
 
@@ -182,6 +204,7 @@ function validateName(name, skillDir, errors, warnings) {
     warnings.push({
       code: 'name.vague',
       message: `Name contains vague term: ${name} (consider more specific name)`,
+      path: issuePath,
     })
   }
 }
@@ -198,6 +221,7 @@ async function checkNestedReferences(skillDir, warnings) {
       warnings.push({
         code: 'ref.nested',
         message: `Reference file ${file.name} links to other references (keep one level deep)`,
+        path: path.relative(skillDir, file.path),
       })
     }
   }
@@ -220,6 +244,7 @@ async function checkReferenceTOCs(skillDir, infos, warnings) {
         infos.push({
           code: 'ref.toc.ignored',
           message: `Skipping TOC check for ${file.name} (explicit ignore)`,
+          path: path.relative(skillDir, file.path),
         })
         continue
       }
@@ -229,6 +254,7 @@ async function checkReferenceTOCs(skillDir, infos, warnings) {
           warnings.push({
             code: 'ref.toc.missing',
             message: `${file.name} has ${lineCount} lines but no TOC (recommend TOC for >100 lines)`,
+            path: path.relative(skillDir, file.path),
           })
         }
       }
@@ -285,6 +311,7 @@ async function checkBrokenLinks(skillDir, warnings) {
         warnings.push({
           code: 'link.broken',
           message: `${path.basename(file)} references missing file: ${linkTarget}`,
+          path: path.relative(skillDir, file),
         })
       }
     }
@@ -301,6 +328,7 @@ async function checkExtraneousFiles(skillDir, errors, warnings) {
       errors.push({
         code: 'file.extraneous',
         message: `Extraneous file found: ${file} (should only contain files for AI)`,
+        path: file,
       })
     }
   }
@@ -312,6 +340,7 @@ async function checkExtraneousFiles(skillDir, errors, warnings) {
         warnings.push({
           code: 'file.junk',
           message: `Junk file found: ${entry} (remove it)`,
+          path: entry,
         })
       }
     })
@@ -472,6 +501,7 @@ async function checkPlaceholderText(skillDir, warnings) {
           .slice(0, 3)
           .map(({matched}) => matched)
           .join(', ')}${filtered.length > 3 ? '...' : ''}`,
+        path: path.relative(skillDir, file),
       })
     }
   }
@@ -513,6 +543,7 @@ async function checkHeadingHierarchy(skillDir, warnings) {
           warnings.push({
             code: 'heading.jump',
             message: `${path.basename(file)} line ${i + 1}: heading jumps from H${previousLevel} to H${currentLevel} (skips levels)`,
+            path: path.relative(skillDir, file),
           })
         }
         previousLevel = currentLevel
@@ -549,6 +580,7 @@ async function checkDuplicateHeadings(skillDir, warnings) {
           warnings.push({
             code: 'heading.dup',
             message: `${path.basename(file)} has duplicate heading: "${headingText}" (may confuse anchor links)`,
+            path: path.relative(skillDir, file),
           })
         }
         headings.push(headingText)
@@ -582,6 +614,7 @@ async function checkPoorLinkText(skillDir, warnings) {
       warnings.push({
         code: 'link.poor',
         message: `${path.basename(file)} has generic link text: ${matches.slice(0, 2).join(', ')}${matches.length > 2 ? '...' : ''} (use descriptive text)`,
+        path: path.relative(skillDir, file),
       })
     }
   }
