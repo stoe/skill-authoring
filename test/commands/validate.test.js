@@ -20,6 +20,19 @@ async function withSilencedConsole(callback) {
   }
 }
 
+async function captureJson(callback) {
+  const originalLog = console.log
+  const output = []
+  console.log = value => output.push(value)
+
+  try {
+    const exitCode = await callback()
+    return {exitCode, json: JSON.parse(output.join('\n'))}
+  } finally {
+    console.log = originalLog
+  }
+}
+
 describe('commands/validate', () => {
   test('returns zero for a valid skill directory', async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-'))
@@ -72,6 +85,40 @@ This skill validates other skill content and is designed for local testing.
       )
 
       assert.equal(exitCode, 1)
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
+  test('includes issue arrays and counts in JSON output', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-'))
+    const skillDir = path.join(tmpDir, 'broken-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      const {exitCode, json} = await captureJson(() =>
+        validateCommand({
+          skill: skillDir,
+          all: false,
+          format: 'json',
+          failLevel: 'error',
+        }),
+      )
+
+      assert.equal(exitCode, 1)
+      assert.deepEqual(json.skills, [
+        {
+          name: 'broken-skill',
+          errors: [{code: 'skill.missing', message: 'SKILL.md not found', path: 'SKILL.md'}],
+          warnings: [],
+          errorCount: 1,
+          warningCount: 0,
+        },
+      ])
+      assert.deepEqual(json.summary, {
+        totalErrors: 1,
+        totalWarnings: 0,
+      })
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }

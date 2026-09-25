@@ -88,6 +88,7 @@ export async function checkInvisibleUnicode(skillDir, errors) {
       errors.push({
         code: 'security.invisible-unicode',
         message: `${path.basename(file)} contains an invisible/format Unicode character (${codePoint}); remove it before sharing`,
+        path: path.relative(skillDir, file),
       })
     }
   }
@@ -103,6 +104,7 @@ export async function checkEncodedPayloads(skillDir, warnings) {
       warnings.push({
         code: 'security.encoded-payload',
         message: `${path.basename(file)} contains a long base64-like blob outside a fenced code block; verify it is not an encoded instruction payload`,
+        path: path.relative(skillDir, file),
       })
     }
   }
@@ -119,6 +121,7 @@ export async function checkInstructionOverridePatterns(skillDir, errors) {
         errors.push({
           code: 'security.instruction-override',
           message: `${path.basename(file)} contains a suspicious instruction-override phrase (possible prompt injection): matches ${pattern}`,
+          path: path.relative(skillDir, file),
         })
         break
       }
@@ -137,6 +140,7 @@ export async function checkHardcodedLocalPaths(skillDir, warnings) {
       warnings.push({
         code: 'security.local-path',
         message: `${path.basename(file)} contains a hardcoded personal/local path (${match[0].trim()}); remove before publishing`,
+        path: path.relative(skillDir, file),
       })
     }
   }
@@ -160,6 +164,7 @@ export async function checkProfilePolicy(skillDir, profile, errors) {
       errors.push({
         code: 'profile.public.private-url',
         message: `${path.basename(file)} references a private or authenticated-only URL (${match[0]}); remove or replace it before public distribution`,
+        path: path.relative(skillDir, file),
       })
     }
   }
@@ -169,6 +174,7 @@ export async function checkProfilePolicy(skillDir, profile, errors) {
     errors.push({
       code: 'profile.public.private-marker',
       message: 'Skill contains a .private marker and cannot be distributed with the public profile',
+      path: '.private',
     })
   }
 }
@@ -204,6 +210,7 @@ export async function checkReferencePathSafety(skillDir, errors, warnings) {
         errors.push({
           code: 'security.path.absolute',
           message: `${path.basename(file)} references an absolute path (${target}); use a relative path scoped to the skill directory`,
+          path: path.relative(skillDir, file),
         })
         continue
       }
@@ -214,6 +221,7 @@ export async function checkReferencePathSafety(skillDir, errors, warnings) {
         errors.push({
           code: 'security.path.traversal',
           message: `${path.basename(file)} references a path that escapes the skill directory (${target})`,
+          path: path.relative(skillDir, file),
         })
       }
     }
@@ -236,7 +244,7 @@ export async function checkExternalUrlUntrusted(skillDir, warnings) {
 
     if (urlRegex.test(stripped)) {
       anyExternalUrl = true
-      filesWithUrls.add(path.basename(file))
+      filesWithUrls.add(path.relative(skillDir, file))
     }
 
     if (/untrusted/i.test(stripped)) {
@@ -248,11 +256,12 @@ export async function checkExternalUrlUntrusted(skillDir, warnings) {
     warnings.push({
       code: 'security.external-url',
       message: `External URL(s) referenced in ${[...filesWithUrls].join(', ')} without documenting that fetched content must be treated as untrusted data`,
+      path: filesWithUrls.size === 1 ? [...filesWithUrls][0] : null,
     })
   }
 }
 
-export function checkBoundaryLanguage(description, warnings) {
+export function checkBoundaryLanguage(description, warnings, issuePath = null) {
   const text = (description || '').trim()
   if (!text) return
 
@@ -261,6 +270,7 @@ export function checkBoundaryLanguage(description, warnings) {
       code: 'security.boundary',
       message:
         'Description lacks a clear boundary/"must not" clause (e.g., \'Boundary: not for ...\'); add one so agents avoid over-triggering',
+      path: issuePath,
     })
   }
 }

@@ -45,6 +45,7 @@ This skill validates other skill content and is designed for local testing.
       await mkdir(skillDir, {recursive: true})
       const result = await validateSkill(skillDir)
       assert.equal(result.errors[0].code, 'skill.missing')
+      assert.equal(result.errors[0].path, 'SKILL.md')
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }
@@ -72,7 +73,7 @@ Read /Users/example/private/input.md before continuing.
 
       const result = await validateSkill(skillDir, {profile: 'public'})
       assert.equal(result.profile, 'public')
-      assert.ok(result.errors.some(issue => issue.code === 'security.local-path'))
+      assert.ok(result.errors.some(issue => issue.code === 'security.local-path' && issue.path === 'SKILL.md'))
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }

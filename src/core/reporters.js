@@ -67,9 +67,9 @@ function prettyReporter(result) {
 function jsonReporter(result) {
   const {errors, warnings, infos} = result
   const output = {
-    errors: errors.map(e => ({code: e.code, message: e.message})),
-    warnings: warnings.map(w => ({code: w.code, message: w.message})),
-    infos: infos.map(i => ({code: i.code, message: i.message})),
+    errors: serializeIssues(errors),
+    warnings: serializeIssues(warnings),
+    infos: serializeIssues(infos),
     summary: {
       errorCount: errors.length,
       warningCount: warnings.length,
@@ -92,8 +92,10 @@ export function reportBatch(results, format = 'pretty', failLevel = 'error') {
     const output = {
       skills: results.map(r => ({
         name: r.skillName,
-        errors: r.errors.length,
-        warnings: r.warnings.length,
+        errors: serializeIssues(r.errors),
+        warnings: serializeIssues(r.warnings),
+        errorCount: r.errors.length,
+        warningCount: r.warnings.length,
       })),
       summary: {
         totalErrors,
@@ -113,4 +115,8 @@ export function reportBatch(results, format = 'pretty', failLevel = 'error') {
   }
 
   return totalErrors > 0 || (failLevel === 'warning' && totalWarnings > 0) ? 1 : 0
+}
+
+function serializeIssues(issues) {
+  return issues.map(({code, message, path}) => ({code, message, path: path ?? null}))
 }

@@ -54,6 +54,26 @@ skill-authoring validate --all --path <root> --fail-level warning
 | `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning`  |
 | `-h, --help`            | Show help                                                    |
 
+JSON output includes structured `errors` and `warnings` arrays for each skill, direct `errorCount` and `warningCount` values, and aggregate totals. Each issue includes a skill-relative `path` when the source file is known, or `null` otherwise:
+
+```json
+{
+  "skills": [
+    {
+      "name": "example-skill",
+      "errors": [{"code": "skill.missing", "message": "SKILL.md not found", "path": "SKILL.md"}],
+      "warnings": [],
+      "errorCount": 1,
+      "warningCount": 0
+    }
+  ],
+  "summary": {
+    "totalErrors": 1,
+    "totalWarnings": 0
+  }
+}
+```
+
 Validation covers, among other checks: frontmatter parsing and required fields, `name`/`description` conventions, SKILL.md length (~100 lines target, 5,000 word max), broken relative links, placeholder text, heading hierarchy, extraneous files, and a set of security checks (invisible Unicode, encoded payloads, instruction-override patterns, hardcoded local paths, unsafe reference paths, boundary-language requirements).
 
 ### Validation profiles
