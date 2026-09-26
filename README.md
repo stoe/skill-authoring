@@ -5,7 +5,7 @@
 
 > CLI to scaffold and validate GitHub Copilot skill packages (SKILL.md authoring toolkit)
 
-`@stoe/skill-authoring` provides a small, dependency-free command-line tool for creating and validating [Agent Skills](https://docs.github.com/en/copilot) (`SKILL.md`-based packages) for GitHub Copilot. It is designed to work as a standalone package and can be installed and used independently.
+`@stoe/skill-authoring` provides a small command-line tool for creating and validating [Agent Skills](https://docs.github.com/en/copilot) (`SKILL.md`-based packages) for GitHub Copilot. It is designed to work as a standalone package and can be installed and used independently.
 
 ## Installation
 
@@ -37,30 +37,45 @@ npm i -D @stoe/skill-authoring
 Validate skill structure, frontmatter, naming conventions, and resource organization.
 
 ```sh
-skill-authoring validate --skill <path>
-skill-authoring validate --all --path <root>
-skill-authoring validate --all --path <root> --format json
-skill-authoring validate --all --path <root> --profile public
-skill-authoring validate --all --path <root> --fail-level warning
+skill-authoring validate [path]
+skill-authoring validate [path] --format json
+skill-authoring validate [path] --profile public
+skill-authoring validate --all [path]
+skill-authoring validate --all [path] --fail-level warning
+skill-authoring validate --all <ignored-path> --yes
 ```
 
-| Option                  | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `-s, --skill <path>`    | Path to a single skill directory to validate                 |
-| `-a, --all`             | Validate all skills found under `--path`                     |
-| `-p, --path <path>`     | Root path for discovering skills (used with `--all`)         |
-| `-f, --format <format>` | Output format: `pretty` (default) or `json`                  |
-| `--profile <profile>`   | Policy profile: `standard` (default), `public`, or `private` |
-| `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning`  |
-| `-h, --help`            | Show help                                                    |
+| Argument | Description                                                                                               |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| `[path]` | Skill directory or `SKILL.md` file; defaults to the current directory. With `--all`, must be a directory. |
 
-JSON output includes structured `errors` and `warnings` arrays for each skill, direct `errorCount` and `warningCount` values, and aggregate totals. Each issue includes a skill-relative `path` when the source file is known, or `null` otherwise:
+| Option                  | Description                                                           |
+| ----------------------- | --------------------------------------------------------------------- |
+| `-a, --all`             | Recursively discover and validate skills below `[path]`               |
+| `-y, --yes`             | Confirm scanning an explicitly requested path ignored by `.gitignore` |
+| `-f, --format <format>` | Output format: `pretty` (default) or `json`                           |
+| `--profile <profile>`   | Policy profile: `standard` (default), `public`, or `private`          |
+| `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning`           |
+| `-h, --help`            | Show help                                                             |
+
+Without `--all`, validation targets exactly one skill: the directory at `[path]` or the parent directory of a supplied `SKILL.md` file. Descendant directories are not searched. When `[path]` is omitted, the current directory is validated.
+
+With `--all`, `[path]` must be a directory and becomes the recursive discovery root. The starting directory and every non-ignored real descendant directory are scanned, including skills nested below other skills. Directory symlinks are not followed. When `[path]` is omitted, discovery starts from the current directory.
+
+Recursive discovery honors `.gitignore` files at every directory level with Git-style matching and negation. If an explicitly supplied recursive root is ignored by rules from its containing Git repository, the CLI warns and asks for confirmation. Use `--yes` to confirm in advance; non-interactive execution exits non-zero unless `--yes` is present. After confirmation, ignore rules inside the selected root still apply.
+
+Filename discovery is case-insensitive so directories containing variants such as `skill.md` are not silently skipped. Validation still requires the canonical exact filename `SKILL.md`, and non-canonical variants receive a `skill.missing` error.
+
+Pretty output identifies each validation target by its absolute skill directory path.
+
+JSON output includes each skill's absolute directory `path`, structured `errors` and `warnings` arrays, direct `errorCount` and `warningCount` values, and aggregate totals. Issue-level `path` values remain relative to the skill directory when the source file is known, or `null` otherwise:
 
 ```json
 {
   "skills": [
     {
       "name": "example-skill",
+      "path": "/absolute/path/to/example-skill",
       "errors": [{"code": "skill.missing", "message": "SKILL.md not found", "path": "SKILL.md"}],
       "warnings": [],
       "errorCount": 1,
