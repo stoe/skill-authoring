@@ -14,9 +14,9 @@ export function createReporter(format = 'pretty') {
 }
 
 function prettyReporter(result) {
-  const {skillName, errors, warnings, infos} = result
+  const {skillPath, errors, warnings, infos} = result
 
-  console.log(`\nValidating skill at: ${skillName}\n`)
+  console.log(`\nValidating skill at: ${skillPath}\n`)
 
   // Success checks
   const successChecks = [
@@ -65,8 +65,10 @@ function prettyReporter(result) {
 }
 
 function jsonReporter(result) {
-  const {errors, warnings, infos} = result
+  const {skillName, skillPath, errors, warnings, infos} = result
   const output = {
+    name: skillName,
+    path: skillPath,
     errors: serializeIssues(errors),
     warnings: serializeIssues(warnings),
     infos: serializeIssues(infos),
@@ -92,6 +94,7 @@ export function reportBatch(results, format = 'pretty', failLevel = 'error') {
     const output = {
       skills: results.map(r => ({
         name: r.skillName,
+        path: r.skillPath,
         errors: serializeIssues(r.errors),
         warnings: serializeIssues(r.warnings),
         errorCount: r.errors.length,

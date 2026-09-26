@@ -20,8 +20,9 @@ import {
 } from './security.js'
 
 export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
-  const skillName = path.basename(skillDir)
-  const skillMdPath = path.join(skillDir, 'SKILL.md')
+  const skillPath = path.resolve(skillDir)
+  const skillName = path.basename(skillPath)
+  const skillMdPath = path.join(skillPath, 'SKILL.md')
   const skillMdIssuePath = 'SKILL.md'
 
   const errors = []
@@ -29,9 +30,9 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   const infos = []
 
   // Check SKILL.md exists
-  if (!(await hasExactEntry(skillDir, 'SKILL.md')) || !(await fileExists(skillMdPath))) {
+  if (!(await hasExactEntry(skillPath, 'SKILL.md')) || !(await fileExists(skillMdPath))) {
     errors.push({code: 'skill.missing', message: 'SKILL.md not found', path: skillMdIssuePath})
-    return {skillName, errors, warnings, infos}
+    return {skillName, skillPath, errors, warnings, infos}
   }
 
   // Read and parse frontmatter
@@ -45,7 +46,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
       message: `Failed to read SKILL.md: ${err.message}`,
       path: skillMdIssuePath,
     })
-    return {skillName, errors, warnings, infos}
+    return {skillName, skillPath, errors, warnings, infos}
   }
 
   const frontmatter = extractFrontmatter(content)
@@ -55,11 +56,11 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
       message: 'No YAML frontmatter found in SKILL.md',
       path: skillMdIssuePath,
     })
-    return {skillName, errors, warnings, infos}
+    return {skillName, skillPath, errors, warnings, infos}
   }
 
   // Validate name
-  validateName(frontmatter.name, skillDir, errors, warnings, skillMdIssuePath)
+  validateName(frontmatter.name, skillPath, errors, warnings, skillMdIssuePath)
 
   // Validate required description field
   if (!frontmatter.description) {
@@ -106,43 +107,43 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   }
 
   // Check nested references
-  await checkNestedReferences(skillDir, warnings)
+  await checkNestedReferences(skillPath, warnings)
 
   // Check reference TOCs
-  await checkReferenceTOCs(skillDir, infos, warnings)
+  await checkReferenceTOCs(skillPath, infos, warnings)
 
   // Check broken links
-  await checkBrokenLinks(skillDir, warnings)
+  await checkBrokenLinks(skillPath, warnings)
 
   // Check extraneous files
-  await checkExtraneousFiles(skillDir, errors, warnings)
+  await checkExtraneousFiles(skillPath, errors, warnings)
 
   // Check placeholder text
-  await checkPlaceholderText(skillDir, warnings)
+  await checkPlaceholderText(skillPath, warnings)
 
   // Check heading hierarchy
-  await checkHeadingHierarchy(skillDir, warnings)
+  await checkHeadingHierarchy(skillPath, warnings)
 
   // Check duplicate headings
-  await checkDuplicateHeadings(skillDir, warnings)
+  await checkDuplicateHeadings(skillPath, warnings)
 
   // Check poor link text
-  await checkPoorLinkText(skillDir, warnings)
+  await checkPoorLinkText(skillPath, warnings)
 
   // Check boundary/"must not" language in the description
   checkBoundaryLanguage(frontmatter.description, warnings, skillMdIssuePath)
 
   // Security checks (OWASP Agentic Skills Top 10)
-  await checkInvisibleUnicode(skillDir, errors)
-  await checkInstructionOverridePatterns(skillDir, errors)
-  await checkEncodedPayloads(skillDir, warnings)
-  await checkHardcodedLocalPaths(skillDir, profile === 'public' ? errors : warnings)
-  await checkReferencePathSafety(skillDir, errors, warnings)
-  await checkExternalUrlUntrusted(skillDir, warnings)
-  await checkSecurityMetadataGuidance(skillDir, frontmatterMatch ? frontmatterMatch[0] : '', warnings)
-  await checkProfilePolicy(skillDir, profile, errors)
+  await checkInvisibleUnicode(skillPath, errors)
+  await checkInstructionOverridePatterns(skillPath, errors)
+  await checkEncodedPayloads(skillPath, warnings)
+  await checkHardcodedLocalPaths(skillPath, profile === 'public' ? errors : warnings)
+  await checkReferencePathSafety(skillPath, errors, warnings)
+  await checkExternalUrlUntrusted(skillPath, warnings)
+  await checkSecurityMetadataGuidance(skillPath, frontmatterMatch ? frontmatterMatch[0] : '', warnings)
+  await checkProfilePolicy(skillPath, profile, errors)
 
-  return {skillName, profile, errors, warnings, infos}
+  return {skillName, skillPath, profile, errors, warnings, infos}
 }
 
 function validateName(name, skillDir, errors, warnings, issuePath) {
