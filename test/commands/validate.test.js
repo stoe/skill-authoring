@@ -109,6 +109,7 @@ This skill validates other skill content and is designed for local testing.
       assert.deepEqual(json.skills, [
         {
           name: 'broken-skill',
+          path: path.resolve(skillDir),
           errors: [{code: 'skill.missing', message: 'SKILL.md not found', path: 'SKILL.md'}],
           warnings: [],
           errorCount: 1,
