@@ -46,7 +46,8 @@ export function createLogger(level = 'info') {
         warn: `${colors.yellow}⚠${colors.reset}`,
         error: `${colors.red}✗${colors.reset}`,
       }[severity]
-      console.log(`${prefix} ${msg}`)
+      const output = severity === 'warn' || severity === 'error' ? console.error : console.log
+      output(`${prefix} ${msg}`)
     }
   }
 
