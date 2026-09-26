@@ -84,6 +84,10 @@ describe('CLI', () => {
         singleSkills.map(skill => skill.name),
         ['nested-skill'],
       )
+      assert.deepEqual(
+        singleSkills.map(skill => skill.path),
+        [path.resolve(nestedSkill)],
+      )
 
       await assert.rejects(
         () => execFileAsync(process.execPath, [cliPath, 'validate', tmpDir, '--format', 'json'], {cwd: os.tmpdir()}),
@@ -92,6 +96,10 @@ describe('CLI', () => {
           assert.deepEqual(
             output.skills.map(skill => skill.name),
             [path.basename(tmpDir)],
+          )
+          assert.deepEqual(
+            output.skills.map(skill => skill.path),
+            [path.resolve(tmpDir)],
           )
           assert.equal(output.skills[0].errors[0].code, 'skill.missing')
           return true
@@ -108,6 +116,10 @@ describe('CLI', () => {
       assert.deepEqual(
         recursiveSkills.map(skill => skill.name),
         ['nested-skill'],
+      )
+      assert.deepEqual(
+        recursiveSkills.map(skill => skill.path),
+        [path.resolve(nestedSkill)],
       )
     } finally {
       await rm(tmpDir, {recursive: true, force: true})

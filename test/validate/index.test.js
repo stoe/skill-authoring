@@ -29,6 +29,7 @@ This skill validates other skill content and is designed for local testing.
 
       const result = await validateSkill(skillDir)
       assert.equal(result.skillName, 'valid-skill')
+      assert.equal(result.skillPath, path.resolve(skillDir))
       assert.ok(Array.isArray(result.errors))
       assert.ok(Array.isArray(result.warnings))
       assert.ok(Array.isArray(result.infos))
@@ -44,8 +45,25 @@ This skill validates other skill content and is designed for local testing.
     try {
       await mkdir(skillDir, {recursive: true})
       const result = await validateSkill(skillDir)
+      assert.equal(result.skillPath, path.resolve(skillDir))
       assert.equal(result.errors[0].code, 'skill.missing')
       assert.equal(result.errors[0].path, 'SKILL.md')
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
+  test('requires the canonical SKILL.md filename casing', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-index-'))
+    const skillDir = path.join(tmpDir, 'lowercase-skill')
+
+    try {
+      await mkdir(skillDir, {recursive: true})
+      await writeFile(path.join(skillDir, 'skill.md'), '---\nname: lowercase-skill\ndescription: sample\n---\n')
+
+      const result = await validateSkill(skillDir)
+      assert.equal(result.skillPath, path.resolve(skillDir))
+      assert.deepEqual(result.errors, [{code: 'skill.missing', message: 'SKILL.md not found', path: 'SKILL.md'}])
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
     }
