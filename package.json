@@ -50,6 +50,9 @@
     "pretest": "npx eslint-config-prettier eslint.config.js",
     "test": "find src -name '*.js' -exec node --check {} + && node --test test/**/*.test.js && npx eslint -c eslint.config.js ."
   },
+  "dependencies": {
+    "ignore": "^7.0.10"
+  },
   "devDependencies": {
     "@github/prettier-config": "^0.0.6",
     "eslint": "^10.11.0",
