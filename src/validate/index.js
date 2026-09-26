@@ -4,7 +4,7 @@
 
 import fs from 'fs/promises'
 import path from 'path'
-import {readText, walk, fileExists, listDir} from '../core/fsx.js'
+import {readText, walk, fileExists, hasExactEntry, listDir} from '../core/fsx.js'
 import {extractFrontmatter} from '../core/frontmatter.js'
 import {validateMicroTemplate} from './micro-templates.js'
 import {
@@ -29,7 +29,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   const infos = []
 
   // Check SKILL.md exists
-  if (!(await fileExists(skillMdPath))) {
+  if (!(await hasExactEntry(skillDir, 'SKILL.md')) || !(await fileExists(skillMdPath))) {
     errors.push({code: 'skill.missing', message: 'SKILL.md not found', path: skillMdIssuePath})
     return {skillName, errors, warnings, infos}
   }

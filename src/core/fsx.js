@@ -33,6 +33,11 @@ export async function fileExists(filePath) {
   }
 }
 
+export async function hasExactEntry(dirPath, entryName) {
+  const entries = await fs.readdir(dirPath)
+  return entries.includes(entryName)
+}
+
 export async function listDir(dirPath) {
   try {
     const entries = await fs.readdir(dirPath)
