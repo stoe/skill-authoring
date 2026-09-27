@@ -73,6 +73,27 @@ describe('core/discover', () => {
     }
   })
 
+  test('excludes generated and test directory roots and subtrees from recursive discovery', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-discover-'))
+    const excludedDirs = ['build', 'dist', 'test', 'tests'].map(name => path.join(tmpDir, name))
+    const testingSkill = path.join(tmpDir, 'testing', 'included-skill')
+
+    try {
+      for (const excludedDir of excludedDirs) {
+        await writeSkill(excludedDir)
+        await writeSkill(path.join(excludedDir, 'fixtures', 'nested-skill'))
+      }
+      await writeSkill(testingSkill)
+
+      assert.deepEqual(await discoverSkills(tmpDir), [testingSkill])
+      for (const excludedDir of excludedDirs) {
+        assert.deepEqual(await discoverSkills(excludedDir), [])
+      }
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
   test('honors nested .gitignore rules and negation', async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-discover-'))
     const includedSkill = path.join(tmpDir, 'generated', 'keep')

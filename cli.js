@@ -127,6 +127,7 @@ Validation rules:
   - Description: max 1024 characters; should include trigger contexts (USE WHEN, etc.)
   - File references inside fenced code blocks (\`\`\`) are ignored and not checked.
   - --all honors nested .gitignore rules and does not follow directory symlinks.
+  - --all excludes directories named build, dist, test, or tests and their descendants.
   - Discovery matches skill.md case-insensitively; validation requires exact SKILL.md.
   - Explicit ignored roots require confirmation or --yes.
 

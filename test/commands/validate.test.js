@@ -268,6 +268,47 @@ license: MIT. See LICENSE file for details.
     }
   })
 
+  test('--all excludes skills in generated and test subtrees', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-'))
+    const includedSkill = path.join(tmpDir, 'skills', 'included-skill')
+    const excludedSkills = ['build', 'dist', 'test', 'tests'].map(name =>
+      path.join(tmpDir, name, 'fixtures', `${name}-skill`),
+    )
+    const skillContents = name => `---
+name: ${name}
+description: Provides a sample skill. Use when testing recursive validation discovery.
+license: MIT. See LICENSE file for details.
+---
+
+# ${name}
+`
+
+    try {
+      await mkdir(includedSkill, {recursive: true})
+      await writeFile(path.join(includedSkill, 'SKILL.md'), skillContents('included-skill'))
+      for (const excludedSkill of excludedSkills) {
+        await mkdir(excludedSkill, {recursive: true})
+        await writeFile(path.join(excludedSkill, 'SKILL.md'), skillContents(path.basename(excludedSkill)))
+      }
+
+      const result = await captureJson(() =>
+        validateCommand({
+          target: tmpDir,
+          all: true,
+          format: 'json',
+        }),
+      )
+
+      assert.equal(result.exitCode, 0)
+      assert.deepEqual(
+        result.json.skills.map(skill => skill.name),
+        ['included-skill'],
+      )
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
   test('accepts a SKILL.md file as a single target', async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-validate-'))
     const skillDir = path.join(tmpDir, 'file-target')
