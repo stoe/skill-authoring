@@ -9,6 +9,7 @@ import {fileExists, hasExactEntry} from './fsx.js'
 
 const SKILL_FILENAME = 'skill.md'
 const GITIGNORE_FILENAME = '.gitignore'
+const EXCLUDED_DIRECTORY_NAMES = new Set(['build', 'dist', 'test', 'tests'])
 
 export async function discoverSkills(rootDir, options = {}) {
   const resolvedRoot = path.resolve(rootDir)
@@ -22,6 +23,10 @@ export async function discoverSkills(rootDir, options = {}) {
   const initialScopes = rootStatus.ignored ? [] : rootStatus.scopes
 
   async function traverse(currentDir, parentScopes) {
+    if (EXCLUDED_DIRECTORY_NAMES.has(path.basename(currentDir))) {
+      return
+    }
+
     const entries = await fs.readdir(currentDir, {withFileTypes: true})
 
     if (entries.some(entry => entry.name.toLowerCase() === SKILL_FILENAME)) {

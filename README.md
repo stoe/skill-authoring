@@ -60,7 +60,7 @@ skill-authoring validate --all <ignored-path> --yes
 
 Without `--all`, validation targets exactly one skill: the directory at `[path]` or the parent directory of a supplied `SKILL.md` file. Descendant directories are not searched. When `[path]` is omitted, the current directory is validated.
 
-With `--all`, `[path]` must be a directory and becomes the recursive discovery root. The starting directory and every non-ignored real descendant directory are scanned, including skills nested below other skills. Directory symlinks are not followed. When `[path]` is omitted, discovery starts from the current directory.
+With `--all`, `[path]` must be a directory and becomes the recursive discovery root. The starting directory and every non-ignored real descendant directory are scanned, including skills nested below other skills. Directories named exactly `build`, `dist`, `test`, or `tests` and their descendants are excluded, even when they contain `SKILL.md`. Directory symlinks are not followed. When `[path]` is omitted, discovery starts from the current directory.
 
 Recursive discovery honors `.gitignore` files at every directory level with Git-style matching and negation. If an explicitly supplied recursive root is ignored by rules from its containing Git repository, the CLI warns and asks for confirmation. Use `--yes` to confirm in advance; non-interactive execution exits non-zero unless `--yes` is present. After confirmation, ignore rules inside the selected root still apply.
 
