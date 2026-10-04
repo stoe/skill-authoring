@@ -289,18 +289,16 @@ function addTraversalIssue(
 
 export async function checkExternalUrlUntrusted(skillDir, warnings) {
   const files = await collectDocFiles(skillDir)
-  const urlRegex = /https?:\/\/[^\s)>`'"]+/i
-  const fetchIntentRegex = /\b(fetch|download|retrieve|request|scrape|open|load|visit|read)\b/i
 
   for (const file of files) {
     const data = await readText(file)
     const stripped = stripFencedCode(data.text)
-    const fetchParagraphs = stripped
-      .split(/\n\s*\n/)
-      .filter(paragraph => urlRegex.test(paragraph) && fetchIntentRegex.test(paragraph))
-    const unguardedParagraphs = fetchParagraphs.filter(paragraph => !/\buntrusted\b/i.test(paragraph))
+    const instructions = stripped.split(/\n\s*\n|\n(?=\s*(?:[-+*]|\d+[.)])\s+)/)
+    const unguardedInstructions = instructions.filter(
+      instruction => describesUrlRetrieval(instruction) && !/\buntrusted\b/i.test(instruction),
+    )
 
-    if (unguardedParagraphs.length > 0) {
+    if (unguardedInstructions.length > 0) {
       warnings.push({
         code: 'security.external-url',
         message: `${path.basename(file)} describes fetching external URL(s) without saying the fetched content must be treated as untrusted data; keep that guidance with each fetch instruction`,
@@ -308,6 +306,26 @@ export async function checkExternalUrlUntrusted(skillDir, warnings) {
       })
     }
   }
+}
+
+function describesUrlRetrieval(instruction) {
+  // Hide URL punctuation and citation labels before matching sentence-local intent.
+  const normalized = instruction
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/gi, (_, label) =>
+      /\b(fetch|download|retrieve|scrape)\b/i.test(label) ? `${label} __EXTERNAL_URL__` : '__EXTERNAL_URL__',
+    )
+    .replace(/https?:\/\/[^\s)>`'"]+/gi, '__EXTERNAL_URL__')
+    .replace(/\s+/g, ' ')
+  const sentences = normalized.split(/[.!?;](?:\s|$)/)
+
+  return sentences.some(sentence => {
+    if (!sentence.includes('__EXTERNAL_URL__')) return false
+    if (/\b(fetch|download|retrieve|scrape)\b/i.test(sentence)) return true
+    return (
+      /\b(request|open|load|visit|read)\s+(?:the\s+)?__EXTERNAL_URL__/i.test(sentence) ||
+      /\b(request|open|load|visit|read)\b[^.!?;]*\b(from|at)\s+__EXTERNAL_URL__/i.test(sentence)
+    )
+  })
 }
 
 export function checkBoundaryLanguage(description, warnings, issuePath = null) {
