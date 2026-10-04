@@ -8,7 +8,9 @@
  */
 
 import path from 'path'
+import fs from 'node:fs/promises'
 import {readText, fileExists, walk} from '../core/fsx.js'
+import {fingerprintSourceLine, isPathInside} from './composition.js'
 
 const DOC_DIRS = ['references', 'workflows', 'frameworks']
 
@@ -60,6 +62,22 @@ async function collectDocFiles(skillDir) {
   }
 
   return files
+}
+
+function getNonFencedLines(text) {
+  const lines = text.split('\n')
+  let inCode = false
+  const active = []
+
+  for (let index = 0; index < lines.length; index++) {
+    if (/^```/.test(lines[index])) {
+      inCode = !inCode
+      continue
+    }
+    if (!inCode) active.push({line: index + 1, text: lines[index].replace(/\r$/, '')})
+  }
+
+  return active
 }
 
 /** Strip fenced code blocks so examples of "bad" text don't self-trigger. */
@@ -115,13 +133,17 @@ export async function checkInstructionOverridePatterns(skillDir, errors) {
 
   for (const file of files) {
     const data = await readText(file)
-    const stripped = stripFencedCode(data.text)
-    for (const pattern of INSTRUCTION_OVERRIDE_PATTERNS) {
-      if (pattern.test(stripped)) {
+    const lines = getNonFencedLines(data.text)
+    for (const {line, text} of lines) {
+      for (const pattern of INSTRUCTION_OVERRIDE_PATTERNS) {
+        if (!pattern.test(text)) continue
         errors.push({
           code: 'security.instruction-override',
-          message: `${path.basename(file)} contains a suspicious instruction-override phrase (possible prompt injection): matches ${pattern}`,
+          message: `${path.basename(file)} line ${line} contains a suspicious instruction-override phrase (possible prompt injection): matches ${pattern}. Quotation or negation alone does not suppress it; retain an intentional example only with an exact reviewed finding entry.`,
           path: path.relative(skillDir, file),
+          line,
+          fingerprint: fingerprintSourceLine(text),
+          dispositionEligible: true,
         })
         break
       }
@@ -179,7 +201,7 @@ export async function checkProfilePolicy(skillDir, profile, errors) {
   }
 }
 
-export async function checkReferencePathSafety(skillDir, errors, warnings) {
+export async function checkReferencePathSafety(skillDir, errors, warnings, compositionPolicy = null) {
   const dirs = [...DOC_DIRS, 'assets']
   const skillMdPath = path.join(skillDir, 'SKILL.md')
   const files = []
@@ -216,6 +238,29 @@ export async function checkReferencePathSafety(skillDir, errors, warnings) {
       }
 
       const resolved = path.resolve(path.dirname(file), target)
+      if (compositionPolicy) {
+        if (!isPathInside(compositionPolicy.lexicalBoundaryRoot, resolved)) {
+          addTraversalIssue(errors, file, skillDir, target)
+          continue
+        }
+
+        let realTarget
+        try {
+          realTarget = await fs.realpath(resolved)
+        } catch (error) {
+          if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+            addTraversalIssue(errors, file, skillDir, target, 'does not resolve to an existing target')
+            continue
+          }
+          throw error
+        }
+
+        if (!isPathInside(compositionPolicy.boundaryRoot, realTarget)) {
+          addTraversalIssue(errors, file, skillDir, target)
+        }
+        continue
+      }
+
       const relativeFromSkill = path.relative(resolvedSkillDir, resolved)
       if (relativeFromSkill.startsWith('..') || path.isAbsolute(relativeFromSkill)) {
         errors.push({
@@ -228,37 +273,59 @@ export async function checkReferencePathSafety(skillDir, errors, warnings) {
   }
 }
 
+function addTraversalIssue(
+  errors,
+  file,
+  skillDir,
+  target,
+  reason = 'escapes the skill or an explicitly approved repository reference root',
+) {
+  errors.push({
+    code: 'security.path.traversal',
+    message: `${path.basename(file)} references a path that ${reason} (${target})`,
+    path: path.relative(skillDir, file),
+  })
+}
+
 export async function checkExternalUrlUntrusted(skillDir, warnings) {
   const files = await collectDocFiles(skillDir)
-  // No 'g' flag: this is a one-shot boolean test per file, not iterated with
-  // exec/matchAll, so a stateful lastIndex would leak across files.
-  const urlRegex = /https?:\/\/[^\s)>`'"]+/i
-
-  let anyExternalUrl = false
-  let documentsUntrusted = false
-  const filesWithUrls = new Set()
 
   for (const file of files) {
     const data = await readText(file)
     const stripped = stripFencedCode(data.text)
+    const instructions = stripped.split(/\n\s*\n|\n(?=\s*(?:[-+*]|\d+[.)])\s+)/)
+    const unguardedInstructions = instructions.filter(
+      instruction => describesUrlRetrieval(instruction) && !/\buntrusted\b/i.test(instruction),
+    )
 
-    if (urlRegex.test(stripped)) {
-      anyExternalUrl = true
-      filesWithUrls.add(path.relative(skillDir, file))
-    }
-
-    if (/untrusted/i.test(stripped)) {
-      documentsUntrusted = true
+    if (unguardedInstructions.length > 0) {
+      warnings.push({
+        code: 'security.external-url',
+        message: `${path.basename(file)} describes fetching external URL(s) without saying the fetched content must be treated as untrusted data; keep that guidance with each fetch instruction`,
+        path: path.relative(skillDir, file),
+      })
     }
   }
+}
 
-  if (anyExternalUrl && !documentsUntrusted) {
-    warnings.push({
-      code: 'security.external-url',
-      message: `External URL(s) referenced in ${[...filesWithUrls].join(', ')} without documenting that fetched content must be treated as untrusted data`,
-      path: filesWithUrls.size === 1 ? [...filesWithUrls][0] : null,
-    })
-  }
+function describesUrlRetrieval(instruction) {
+  // Hide URL punctuation and citation labels before matching sentence-local intent.
+  const normalized = instruction
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/gi, (_, label) =>
+      /\b(fetch|download|retrieve|scrape)\b/i.test(label) ? `${label} __EXTERNAL_URL__` : '__EXTERNAL_URL__',
+    )
+    .replace(/https?:\/\/[^\s)>`'"]+/gi, '__EXTERNAL_URL__')
+    .replace(/\s+/g, ' ')
+  const sentences = normalized.split(/[.!?;](?:\s|$)/)
+
+  return sentences.some(sentence => {
+    if (!sentence.includes('__EXTERNAL_URL__')) return false
+    if (/\b(fetch|download|retrieve|scrape)\b/i.test(sentence)) return true
+    return (
+      /\b(request|open|load|visit|read)\s+(?:the\s+)?__EXTERNAL_URL__/i.test(sentence) ||
+      /\b(request|open|load|visit|read)\b[^.!?;]*\b(from|at)\s+__EXTERNAL_URL__/i.test(sentence)
+    )
+  })
 }
 
 export function checkBoundaryLanguage(description, warnings, issuePath = null) {
@@ -269,7 +336,7 @@ export function checkBoundaryLanguage(description, warnings, issuePath = null) {
     warnings.push({
       code: 'security.boundary',
       message:
-        'Description lacks a clear boundary/"must not" clause (e.g., \'Boundary: not for ...\'); add one so agents avoid over-triggering',
+        'Description lacks a clear boundary/"must not" clause; restate the skill\'s existing scope here so agents can discover it without inventing exclusions',
       path: issuePath,
     })
   }

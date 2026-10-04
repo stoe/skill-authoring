@@ -4,6 +4,7 @@
 
 import fs from 'fs/promises'
 import path from 'path'
+import {isPathInside} from './composition.js'
 import {readText, walk, fileExists, hasExactEntry, listDir} from '../core/fsx.js'
 import {extractFrontmatter} from '../core/frontmatter.js'
 import {validateMicroTemplate} from './micro-templates.js'
@@ -19,7 +20,7 @@ import {
   checkProfilePolicy,
 } from './security.js'
 
-export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
+export async function validateSkill(skillDir, {profile = 'standard', compositionPolicy = null} = {}) {
   const skillPath = path.resolve(skillDir)
   const skillName = path.basename(skillPath)
   const skillMdPath = path.join(skillPath, 'SKILL.md')
@@ -33,6 +34,21 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   if (!(await hasExactEntry(skillPath, 'SKILL.md')) || !(await fileExists(skillMdPath))) {
     errors.push({code: 'skill.missing', message: 'SKILL.md not found', path: skillMdIssuePath})
     return {skillName, skillPath, errors, warnings, infos}
+  }
+
+  if (compositionPolicy) {
+    const [realSkillDir, realSkillMdPath] = await Promise.all([fs.realpath(skillPath), fs.realpath(skillMdPath)])
+    if (
+      !isPathInside(compositionPolicy.boundaryRoot, realSkillMdPath) ||
+      !isPathInside(realSkillDir, realSkillMdPath)
+    ) {
+      errors.push({
+        code: 'security.path.traversal',
+        message: 'SKILL.md resolves outside the selected skill directory or repository root',
+        path: skillMdIssuePath,
+      })
+      return {skillName, skillPath, errors, warnings, infos}
+    }
   }
 
   // Read and parse frontmatter
@@ -101,7 +117,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   if (lineCount > 120) {
     warnings.push({
       code: 'skill.lines',
-      message: `SKILL.md has ${lineCount} lines (target ~100 lines; max 120 with 20% buffer for leanness)`,
+      message: `SKILL.md has ${lineCount} lines after frontmatter (blank lines count; a trailing newline adds a final empty line). Aim for ~100 lines and keep mandatory contracts intact`,
       path: skillMdIssuePath,
     })
   }
@@ -138,7 +154,7 @@ export async function validateSkill(skillDir, {profile = 'standard'} = {}) {
   await checkInstructionOverridePatterns(skillPath, errors)
   await checkEncodedPayloads(skillPath, warnings)
   await checkHardcodedLocalPaths(skillPath, profile === 'public' ? errors : warnings)
-  await checkReferencePathSafety(skillPath, errors, warnings)
+  await checkReferencePathSafety(skillPath, errors, warnings, compositionPolicy)
   await checkExternalUrlUntrusted(skillPath, warnings)
   await checkSecurityMetadataGuidance(skillPath, frontmatterMatch ? frontmatterMatch[0] : '', warnings)
   await checkProfilePolicy(skillPath, profile, errors)

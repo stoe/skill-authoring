@@ -49,14 +49,15 @@ skill-authoring validate --all <ignored-path> --yes
 | -------- | --------------------------------------------------------------------------------------------------------- |
 | `[path]` | Skill directory or `SKILL.md` file; defaults to the current directory. With `--all`, must be a directory. |
 
-| Option                  | Description                                                           |
-| ----------------------- | --------------------------------------------------------------------- |
-| `-a, --all`             | Recursively discover and validate skills below `[path]`               |
-| `-y, --yes`             | Confirm scanning an explicitly requested path ignored by `.gitignore` |
-| `-f, --format <format>` | Output format: `pretty` (default) or `json`                           |
-| `--profile <profile>`   | Policy profile: `standard` (default), `public`, or `private`          |
-| `--fail-level <level>`  | Exit non-zero at this level: `error` (default) or `warning`           |
-| `-h, --help`            | Show help                                                             |
+| Option                       | Description                                                                              |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `-a, --all`                  | Recursively discover and validate skills below `[path]`                                  |
+| `-y, --yes`                  | Confirm scanning an explicitly requested path ignored by `.gitignore`                    |
+| `-f, --format <format>`      | Output format: `pretty` (default) or `json`                                              |
+| `--profile <profile>`        | Policy profile: `standard` (default), `public`, or `private`                             |
+| `--fail-level <level>`       | Exit non-zero at this level: `error` (default) or `warning`                              |
+| `--reviewed-findings <path>` | Apply exact reviewed instruction-override dispositions from a repository-local JSON file |
+| `-h, --help`                 | Show help                                                                                |
 
 Without `--all`, validation targets exactly one skill: the directory at `[path]` or the parent directory of a supplied `SKILL.md` file. Descendant directories are not searched. When `[path]` is omitted, the current directory is validated.
 
@@ -90,6 +91,38 @@ JSON output includes each skill's absolute directory `path`, structured `errors`
 ```
 
 Validation covers, among other checks: frontmatter parsing and required fields, `name`/`description` conventions, SKILL.md length (~100 lines target, 5,000 word max), broken relative links, placeholder text, heading hierarchy, extraneous files, and a set of security checks (invisible Unicode, encoded payloads, instruction-override patterns, hardcoded local paths, unsafe reference paths, boundary-language requirements).
+
+#### Repository references and reviewed findings
+
+When a validation target is inside a Git repository, `git rev-parse --show-toplevel` is the default reference boundary. No extra option is required for a skill to reference a sibling package or shared repository document. For example, this scans all skills and permits references anywhere inside the repository:
+
+```sh
+skill-authoring validate --all .github/skills --format json
+```
+
+The repository root is a hard containment boundary. Link targets must exist, and both their lexical paths and dereferenced filesystem targets must stay inside the repository; symlinks resolving outside are rejected. Outside a Git repository, the supplied `[path]` is the hard boundary for `--all`; for a single-skill validation it is the selected skill directory. Repository-level validation does not establish portability when a skill is distributed independently.
+
+An optional JSON file can record exact human-reviewed instruction-override findings. It must reside inside the Git repository. Only `security.instruction-override` is currently eligible; each exception identifies one repository-relative Markdown path, line, SHA-256 fingerprint of that exact UTF-8 source line (excluding its newline), review type, and rationale. Example:
+
+```json
+{
+  "version": 1,
+  "exceptions": [
+    {
+      "rule": "security.instruction-override",
+      "path": ".github/skills/example/SKILL.md",
+      "line": 42,
+      "fingerprint": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "reviewType": "self-declared",
+      "rationale": "This quoted phrase is an inert negative example."
+    }
+  ]
+}
+```
+
+Pass it with `--reviewed-findings .github/skill-authoring-reviewed-findings.json`. Records for unsupported rules, duplicate locations, malformed records, changed source lines, or findings that no longer match are rejected or reported as stale/unmatched; they do not silently suppress other matches. Review dispositions preserve the original raw finding and appear alongside it in JSON and pretty output. Existing per-skill `errorCount`/`warningCount` and summary `totalErrors`/`totalWarnings` remain raw counts. Additive `effectiveErrorCount`/`effectiveWarningCount`, `totalEffectiveErrors`/`totalEffectiveWarnings`, `reviewedDispositions`, and top-level `reviewedFindingIssues` expose exit accounting and unresolved exceptions. Stale/unmatched exceptions count as effective errors. At `--fail-level warning`, any effective warning still fails. `self-declared` records only identify the submitter's disposition; the validator does not verify independent review.
+
+Repository-root link allowance and reviewed findings do not sandbox skills, verify provenance, authorize execution, or certify security. URL-fetch warnings associate retrieval intent with a URL in the same sentence, rather than treating incidental words such as "open" in citation or output-layout instructions as network access. Untrusted-data guidance must appear in the same paragraph or Markdown list item as the retrieval instruction; wrapped continuation lines remain part of that item. These checks are heuristic, not proof that every fetch is guarded or safe.
 
 ### Validation profiles
 

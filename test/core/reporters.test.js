@@ -82,6 +82,44 @@ describe('core/reporters', () => {
     assert.equal(captureJson(() => reportBatch(results, 'json', 'warning')).exitCode, 1)
   })
 
+  test('preserves raw counts and adds effective accounting for reviewed findings', () => {
+    const result = {
+      skillName: 'reviewed-skill',
+      skillPath: path.resolve('fixtures/reviewed-skill'),
+      errors: [
+        {
+          code: 'security.instruction-override',
+          message: 'Reviewed as an inert negative example',
+          path: 'SKILL.md',
+          line: 12,
+          fingerprint: `sha256:${'a'.repeat(64)}`,
+          dispositionEligible: true,
+          reviewedDisposition: {
+            reviewType: 'independently-reviewed',
+            rationale: 'This is quoted defensive content.',
+            fingerprint: `sha256:${'a'.repeat(64)}`,
+          },
+        },
+      ],
+      warnings: [],
+      infos: [],
+    }
+
+    const {exitCode, json} = captureJson(() =>
+      reportBatch([result], 'json', 'error', {
+        compositionPolicy: {reviewedFindingsEnabled: true},
+        reviewExceptionIssues: [],
+      }),
+    )
+    assert.equal(exitCode, 0)
+    assert.equal(json.skills[0].errorCount, 1)
+    assert.equal(json.skills[0].effectiveErrorCount, 0)
+    assert.equal(json.skills[0].reviewedDispositions, 1)
+    assert.equal(json.summary.totalErrors, 1)
+    assert.equal(json.summary.totalEffectiveErrors, 0)
+    assert.equal(json.skills[0].errors[0].reviewedDisposition.reviewType, 'independently-reviewed')
+  })
+
   test('includes the skill name and absolute path in standalone JSON output', () => {
     const skillPath = path.resolve('fixtures/standalone-skill')
     const result = {
