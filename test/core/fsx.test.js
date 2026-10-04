@@ -1,6 +1,6 @@
 import {describe, test} from 'node:test'
 import assert from 'node:assert/strict'
-import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises'
+import {mkdtemp, mkdir, writeFile, rm, symlink} from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -37,6 +37,23 @@ describe('core/fsx', () => {
       assert.equal(files[0].name, 'x.js')
     } finally {
       await rm(tmpDir, {recursive: true, force: true})
+    }
+  })
+
+  test('does not follow symlinked walk roots or files', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-fsx-'))
+    const externalDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-fsx-external-'))
+
+    try {
+      await writeFile(path.join(externalDir, 'reference.md'), '# External reference\n')
+      await symlink(externalDir, path.join(tmpDir, 'linked-root'), 'dir')
+      await symlink(path.join(externalDir, 'reference.md'), path.join(tmpDir, 'linked-file.md'))
+
+      assert.deepEqual(await walk(path.join(tmpDir, 'linked-root'), {patterns: ['.md']}), [])
+      assert.deepEqual(await walk(tmpDir, {patterns: ['.md']}), [])
+    } finally {
+      await rm(tmpDir, {recursive: true, force: true})
+      await rm(externalDir, {recursive: true, force: true})
     }
   })
 

@@ -9,6 +9,12 @@ import {promisify} from 'node:util'
 const execFileAsync = promisify(execFile)
 const cliPath = path.resolve(import.meta.dirname, '../cli.js')
 
+async function initializeGitRepository(repositoryPath) {
+  await mkdir(repositoryPath, {recursive: true})
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')))
+  await execFileAsync('git', ['init', '--quiet'], {cwd: repositoryPath, env})
+}
+
 async function writeValidSkill(skillDir, name) {
   await mkdir(skillDir, {recursive: true})
   await writeFile(
@@ -32,6 +38,8 @@ describe('CLI', () => {
     assert.match(stdout, /\[path\].*Skill directory or SKILL\.md file/)
     assert.match(stdout, /--fail-level/)
     assert.match(stdout, /--profile/)
+    assert.match(stdout, /exact security\.instruction-override/)
+    assert.match(stdout, /Stale or unmatched exceptions fail validation/)
     assert.doesNotMatch(stdout, /--skill/)
     assert.doesNotMatch(stdout, /--path/)
   })
@@ -126,6 +134,44 @@ describe('CLI', () => {
     }
   })
 
+  test('uses the Git repository root as the default reference boundary', async () => {
+    const repo = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-cli-composition-'))
+    const skillDir = path.join(repo, 'skills', 'composed-skill')
+
+    try {
+      await initializeGitRepository(repo)
+      await mkdir(skillDir, {recursive: true})
+      await mkdir(path.join(repo, 'shared-a'), {recursive: true})
+      await mkdir(path.join(repo, 'shared-b'), {recursive: true})
+      await writeFile(path.join(repo, 'shared-a', 'reference.md'), '# Shared A\n')
+      await writeFile(path.join(repo, 'shared-b', 'reference.md'), '# Shared B\n')
+      await writeFile(
+        path.join(skillDir, 'SKILL.md'),
+        `---
+name: composed-skill
+description: Use when validating composed repository skills. Boundary: not for unrelated tasks.
+license: MIT. See LICENSE file for details.
+---
+
+[Shared A](../../shared-a/reference.md)
+[Shared B](../../shared-b/reference.md)
+`,
+      )
+
+      const {stdout, stderr} = await execFileAsync(
+        process.execPath,
+        [cliPath, 'validate', '--all', path.join(repo, 'skills'), '--format', 'json'],
+        {cwd: os.tmpdir()},
+      )
+      assert.equal(stderr, '')
+      const result = JSON.parse(stdout)
+      assert.equal(result.summary.totalErrors, 0)
+      assert.deepEqual(result.skills[0].errors, [])
+    } finally {
+      await rm(repo, {recursive: true, force: true})
+    }
+  })
+
   test('uses the current directory when the validation path is omitted', async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'skill-authoring-cli-'))
     const currentSkill = path.join(tmpDir, 'current-skill')
@@ -154,7 +200,7 @@ describe('CLI', () => {
   })
 
   test('rejects removed target options and multiple positional paths', async () => {
-    for (const removedOption of ['--skill', '--path', '-s', '-p']) {
+    for (const removedOption of ['--skill', '--path', '-s', '-p', '--composition', '--allow-reference-root']) {
       await assert.rejects(
         () => execFileAsync(process.execPath, [cliPath, 'validate', removedOption, '.']),
         /Command failed/,
