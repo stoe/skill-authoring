@@ -50,6 +50,8 @@ export async function listDir(dirPath) {
 export async function walk(dir, options = {}) {
   const {patterns = [], ignore = []} = options
   const results = []
+  const rootStat = await fs.lstat(dir)
+  if (!rootStat.isDirectory()) return results
 
   async function traverse(current) {
     const entries = await fs.readdir(current, {withFileTypes: true})
@@ -62,7 +64,7 @@ export async function walk(dir, options = {}) {
 
       if (entry.isDirectory()) {
         await traverse(fullPath)
-      } else if (patterns.length === 0 || patterns.some(p => entry.name.endsWith(p))) {
+      } else if (entry.isFile() && (patterns.length === 0 || patterns.some(p => entry.name.endsWith(p)))) {
         results.push({path: fullPath, relPath, name: entry.name})
       }
     }

@@ -7,6 +7,7 @@ import fs from 'node:fs/promises'
 import {createInterface} from 'node:readline/promises'
 import {discoverSkills, inspectDiscoveryRoot} from '../core/discover.js'
 import {validateSkill} from '../validate/index.js'
+import {applyReviewedDispositions, createCompositionPolicy, isPathInside} from '../validate/composition.js'
 import {createReporter, reportBatch} from '../core/reporters.js'
 
 export async function validateCommand(args = {}) {
@@ -19,6 +20,7 @@ export async function validateCommand(args = {}) {
     format = 'pretty',
     profile = 'standard',
     failLevel = 'error',
+    reviewedFindingsPath,
   } = args
 
   if (!['error', 'warning'].includes(failLevel)) {
@@ -42,17 +44,34 @@ export async function validateCommand(args = {}) {
     skillPaths = [await resolveSingleTarget(resolvedTarget)]
   }
 
-  for (const skillPath of skillPaths) {
-    const result = await validateSkill(skillPath, {profile})
-    results.push(result)
+  const fallbackRoot = all ? resolvedTarget : skillPaths[0] || resolvedTarget
+  const compositionPolicy = await createCompositionPolicy(skillPaths[0] || fallbackRoot, {
+    fallbackRoot,
+    reviewedFindingsPath,
+  })
 
-    if (format === 'pretty') {
-      reporter(result)
+  if (compositionPolicy) {
+    for (const skillPath of skillPaths) {
+      const realSkillPath = await fs.realpath(skillPath)
+      if (!isPathInside(compositionPolicy.boundaryRoot, realSkillPath)) {
+        throw new Error(`Skill directory must remain inside the validation boundary: ${skillPath}`)
+      }
     }
   }
 
+  for (const skillPath of skillPaths) {
+    const result = await validateSkill(skillPath, {profile, compositionPolicy})
+    results.push(result)
+  }
+
+  const reviewExceptionIssues = compositionPolicy ? await applyReviewedDispositions(results, compositionPolicy) : []
+
+  if (format === 'pretty') {
+    results.forEach(reporter)
+  }
+
   // Report batch summary
-  const exitCode = reportBatch(results, format, failLevel)
+  const exitCode = reportBatch(results, format, failLevel, {compositionPolicy, reviewExceptionIssues})
   return exitCode
 }
 

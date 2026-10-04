@@ -40,6 +40,11 @@ function prettyReporter(result) {
   errors.forEach(issue => {
     const code = issue.code ? `[${issue.code}] ` : ''
     console.log(`${colors.red}✗ ERROR:${colors.reset} ${code}${issue.message}`)
+    if (issue.reviewedDisposition) {
+      console.log(
+        `${colors.blue}ℹ REVIEWED:${colors.reset} ${issue.reviewedDisposition.reviewType}: ${issue.reviewedDisposition.rationale}`,
+      )
+    }
   })
 
   // Warnings
@@ -81,14 +86,21 @@ function jsonReporter(result) {
   return errors.length > 0 ? 1 : 0
 }
 
-export function reportBatch(results, format = 'pretty', failLevel = 'error') {
+export function reportBatch(results, format = 'pretty', failLevel = 'error', options = {}) {
+  const {compositionPolicy = null, reviewExceptionIssues = []} = options
+  const showEffectiveAccounting = Boolean(compositionPolicy?.reviewedFindingsEnabled)
   let totalErrors = 0
   let totalWarnings = 0
+  let totalReviewedDispositions = 0
 
   results.forEach(result => {
     totalErrors += result.errors.length
     totalWarnings += result.warnings.length
+    totalReviewedDispositions += result.errors.filter(issue => issue.reviewedDisposition).length
   })
+  const effectiveErrors = totalErrors - totalReviewedDispositions + reviewExceptionIssues.length
+  const effectiveWarnings = totalWarnings
+  const failed = effectiveErrors > 0 || (failLevel === 'warning' && effectiveWarnings > 0)
 
   if (format === 'json') {
     const output = {
@@ -99,27 +111,63 @@ export function reportBatch(results, format = 'pretty', failLevel = 'error') {
         warnings: serializeIssues(r.warnings),
         errorCount: r.errors.length,
         warningCount: r.warnings.length,
+        ...(showEffectiveAccounting
+          ? {
+              effectiveErrorCount:
+                r.errors.filter(issue => !issue.reviewedDisposition).length +
+                reviewExceptionIssues.filter(issue => issue.targetSkillPath === r.skillPath).length,
+              effectiveWarningCount: r.warnings.length,
+              reviewedDispositions: r.errors.filter(issue => issue.reviewedDisposition).length,
+            }
+          : {}),
       })),
       summary: {
         totalErrors,
         totalWarnings,
+        ...(showEffectiveAccounting
+          ? {
+              totalEffectiveErrors: effectiveErrors,
+              totalEffectiveWarnings: effectiveWarnings,
+              totalReviewedDispositions,
+            }
+          : {}),
       },
+      ...(showEffectiveAccounting ? {reviewedFindingIssues: serializeIssues(reviewExceptionIssues)} : {}),
     }
     console.log(JSON.stringify(output, null, 2))
   } else {
+    if (showEffectiveAccounting) {
+      reviewExceptionIssues.forEach(issue => {
+        console.error(`${colors.red}✗ REVIEW FINDING:${colors.reset} [${issue.code}] ${issue.message}`)
+      })
+    }
+
     console.log('\n' + '━'.repeat(40))
-    if (totalErrors === 0 && totalWarnings === 0) {
+    if (showEffectiveAccounting) {
+      console.log(
+        `Raw findings: ${totalErrors} error(s), ${totalWarnings} warning(s); effective: ${effectiveErrors} error(s), ${effectiveWarnings} warning(s)`,
+      )
+    }
+    if (effectiveErrors === 0 && effectiveWarnings === 0) {
       console.log(`${colors.green}✓ All validations passed!${colors.reset}`)
-    } else if (totalErrors === 0) {
-      console.log(`${colors.yellow}⚠ ${totalWarnings} warning(s) found${colors.reset}`)
+    } else if (effectiveErrors === 0) {
+      console.log(`${colors.yellow}⚠ ${effectiveWarnings} warning(s) found${colors.reset}`)
     } else {
-      console.log(`${colors.red}✗ ${totalErrors} error(s) and ${totalWarnings} warning(s) found${colors.reset}`)
+      console.log(`${colors.red}✗ ${effectiveErrors} error(s) and ${effectiveWarnings} warning(s) found${colors.reset}`)
     }
   }
 
-  return totalErrors > 0 || (failLevel === 'warning' && totalWarnings > 0) ? 1 : 0
+  return failed ? 1 : 0
 }
 
 function serializeIssues(issues) {
-  return issues.map(({code, message, path}) => ({code, message, path: path ?? null}))
+  return issues.map(issue => ({
+    code: issue.code,
+    message: issue.message,
+    path: issue.path ?? null,
+    ...(issue.line ? {line: issue.line} : {}),
+    ...(issue.fingerprint ? {fingerprint: issue.fingerprint} : {}),
+    ...(issue.dispositionEligible ? {dispositionEligible: true} : {}),
+    ...(issue.reviewedDisposition ? {reviewedDisposition: issue.reviewedDisposition} : {}),
+  }))
 }

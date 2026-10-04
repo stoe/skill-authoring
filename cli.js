@@ -32,6 +32,10 @@ async function main() {
       default: 'standard',
       description: 'Validation policy profile: standard|public|private',
     },
+    'reviewed-findings': {
+      type: 'string',
+      description: 'Read exact reviewed finding dispositions from a versioned JSON file inside the repository',
+    },
     'fail-level': {type: 'string', description: 'Exit with error if this level is reached'},
     failLevel: {type: 'string', default: 'error', description: 'Exit with error if this level is reached'},
     name: {type: 'string', short: 'n', description: 'Skill name (for init)'},
@@ -66,6 +70,7 @@ async function main() {
         format: parsed.values.format,
         profile: parsed.values.profile,
         failLevel: parsed.values['fail-level'] || parsed.values.failLevel,
+        reviewedFindingsPath: parsed.values['reviewed-findings'],
       })
       process.exit(exitCode)
     } else if (command === 'init') {
@@ -119,6 +124,8 @@ Options:
   -y, --yes               Confirm scanning an explicitly requested ignored path
   -f, --format <format>   Output format: pretty (default) or json
   --profile <profile>     Policy profile: standard (default), public, or private
+  --reviewed-findings <path>
+                          Read exact reviewed instruction-override dispositions from repository-local JSON
   --fail-level <level>    Exit with error for this level: error (default) or warning
   -h, --help              Show this help message
 
@@ -130,6 +137,14 @@ Validation rules:
   - --all excludes directories named build, dist, test, or tests and their descendants.
   - Discovery matches skill.md case-insensitively; validation requires exact SKILL.md.
   - Explicit ignored roots require confirmation or --yes.
+  - In a Git repository, the repository root is the default reference boundary for every validation.
+  - Link targets must exist and remain inside the repository; symlinks that resolve outside are rejected.
+  - Outside Git repositories, references stay inside the supplied [path]; without --all, this is the selected skill.
+  - Reviewed exceptions apply only to exact security.instruction-override path/line/SHA-256 fingerprints.
+  - Version 1 exception records require rule, repository-relative path, line, SHA-256 line fingerprint, reviewType, and rationale.
+  - reviewType is self-declared or independently-reviewed; unsupported rules and duplicate locations are rejected.
+  - Reviewed findings remain visible in raw errors; additive effective counts drive exit status.
+  - Stale or unmatched exceptions fail validation. No option proves provenance, safely executes skills, or sandboxes them.
 
 Commands:
   validate               Validate skill structure (default command)
@@ -146,6 +161,7 @@ Examples:
   skill-authoring.js validate ./my-skill --format json
   skill-authoring.js validate ./my-skill --profile public
   skill-authoring.js validate --all --fail-level warning
+  skill-authoring.js validate ./skills/example --reviewed-findings reviewed-findings.json --format json
 `)
   }
 }
