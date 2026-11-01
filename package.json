@@ -51,7 +51,7 @@
     "test": "find src -name '*.js' -exec node --check {} + && node --test test/**/*.test.js && npx eslint -c eslint.config.js ."
   },
   "dependencies": {
-    "ignore": "^7.0.12"
+    "ignore": "^7.0.14"
   },
   "devDependencies": {
     "@github/prettier-config": "^0.0.6",
